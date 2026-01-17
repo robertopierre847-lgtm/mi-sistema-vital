@@ -8,124 +8,120 @@ diseno_html = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Vital Pro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <title>Sistema Vital: Edición Imperial</title>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --azul-brillante: #00d2ff;
-            --azul-profundo: #3a7bd5;
-            --blanco-cristal: rgba(255, 255, 255, 0.8);
-        }
         body {
-            margin: 0;
-            font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            background-attachment: fixed;
-            display: flex; flex-direction: column; align-items: center;
-            padding: 20px; color: #333;
+            margin: 0; font-family: 'Quicksand', sans-serif;
+            background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 100%);
+            display: flex; flex-direction: column; align-items: center; padding: 20px;
         }
-        /* Efecto Flotante Glassmorphism */
         .card {
-            background: var(--blanco-cristal);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 20px;
-            padding: 25px;
-            width: 100%; max-width: 400px;
-            margin-bottom: 25px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.4);
+            border-radius: 25px; padding: 25px; width: 100%; max-width: 420px;
+            margin-bottom: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.05);
+            text-align: center;
         }
-        .card:hover { transform: translateY(-5px); }
-        h2 { color: var(--azul-profundo); margin-top: 0; font-weight: 600; }
+        h2 { color: #1976d2; margin-top: 0; }
         input {
-            width: 100%; padding: 12px; margin: 10px 0;
-            border-radius: 12px; border: 1px solid #ddd;
-            box-sizing: border-box; outline: none;
+            width: 100%; padding: 12px; margin: 10px 0; border-radius: 15px;
+            border: 2px solid #bbdefb; outline: none; box-sizing: border-box;
         }
         .btn {
-            background: linear-gradient(to right, var(--azul-brillante), var(--azul-profundo));
-            color: white; border: none; padding: 12px;
-            border-radius: 12px; width: 100%; cursor: pointer;
-            font-weight: 600; box-shadow: 0 4px 15px rgba(58, 123, 213, 0.3);
+            background: #1976d2; color: white; border: none; padding: 14px;
+            border-radius: 15px; width: 100%; cursor: pointer; font-weight: 600;
         }
-        .chat-box {
-            text-align: left; background: rgba(255,255,255,0.5);
-            padding: 15px; border-radius: 15px; min-height: 50px;
-            font-size: 14px; line-height: 1.5; border-left: 4px solid var(--azul-brillante);
+        .ia-box {
+            text-align: left; background: white; padding: 15px; border-radius: 15px;
+            margin-top: 15px; border-left: 5px solid #64b5f6; font-size: 14px;
         }
-        .badge { background: #e3f2fd; color: #1976d2; padding: 5px 10px; border-radius: 20px; font-size: 12px; }
+        .img-ia { width: 100%; border-radius: 15px; margin-top: 10px; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        /* Burbuja de Karma */
+        #karma-bubble {
+            position: fixed; top: 20px; right: 20px; width: 60px; height: 60px;
+            background: #1976d2; color: white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 20px; box-shadow: 0 5px 15px rgba(25,118,210,0.4);
+            z-index: 1000; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
     </style>
 </head>
 <body>
 
+    <div id="karma-bubble" title="Tu Karma Vital">0</div>
+
     <div class="card">
-        <span class="badge">IA Activa</span>
-        <h2>Hola, mi amor ❤️</h2>
-        <p style="font-size: 0.9em;">Pregúntame lo que quieras, tesoro. Buscaré en Wikipedia para ti.</p>
-        <input type="text" id="iaInput" placeholder="¿Qué quieres saber, cielo?">
-        <button class="btn" onclick="iaChat()">Hablar con mi IA</button>
-        <div id="iaRes" class="chat-box" style="margin-top:15px; display:none;"></div>
+        <h2>Asistente de IA Cariñosa ❤️</h2>
+        <p>¿Qué quieres ver, mi cielo? Busca castillos, catapultas o lo que desees.</p>
+        <input type="text" id="iaInput" placeholder="Busca un tema aquí...">
+        <button class="btn" onclick="iaChat()">Consultar a mi IA</button>
+        <div id="iaRes" class="ia-box" style="display:none;"></div>
+        <img id="iaImg" class="img-ia" src="" alt="Imagen de consulta">
+    </div>
+
+    <div class="card" style="border-top: 5px solid #ffca28;">
+        <h2>Secretos del Imperio Romano 🏛️</h2>
+        <p style="font-size: 0.9em; text-align: left;">
+            Los romanos guardaban comida en <b>sal</b>, usaban <b>miel</b> como conservante y tenían pozos de <b>nieve</b> para el verano.
+        </p>
+        <button class="btn" style="background:#ffca28; color:#333;" onclick="subirKarma(10)">Aprender más (+10 Karma)</button>
     </div>
 
     <div class="card">
-        <h2>Desafío Mental Pro 🎮</h2>
-        <p id="hint">Adivina el número secreto (1-100)</p>
-        <input type="number" id="guessInput">
-        <button class="btn" onclick="jugar()">Probar Suerte</button>
-        <p id="msgJuego" style="font-weight: bold;"></p>
-    </div>
-
-    <div class="card">
-        <h2>Herramientas Vitales</h2>
-        <div id="stats" style="display: flex; justify-content: space-around; font-size: 12px;">
-            <div>💧 <b id="waterCount">0</b> Vasos</div>
-            <div>⚡ <b id="powerLevel">100%</b> Energía</div>
-        </div>
-        <button class="btn" style="margin-top:10px; background: #4caf50;" onclick="tomarAgua()">Beber Agua</button>
+        <h2>Desafío Mental Pro</h2>
+        <input type="number" id="guessInput" placeholder="¿Cuál es el número?">
+        <button class="btn" onclick="jugar()">Adivinar</button>
+        <p id="msgJuego"></p>
     </div>
 
     <script>
-        // Lógica de la IA Cariñosa
+        let karma = 0;
+        function subirKarma(pts) {
+            karma += pts;
+            const b = document.getElementById('karma-bubble');
+            b.innerText = karma;
+            b.style.transform = "scale(1.3)";
+            setTimeout(() => b.style.transform = "scale(1)", 300);
+        }
+
         async function iaChat() {
             let q = document.getElementById('iaInput').value;
             let resDiv = document.getElementById('iaRes');
+            let img = document.getElementById('iaImg');
             resDiv.style.display = "block";
-            resDiv.innerHTML = "Déjame buscar eso para ti, corazón... ✨";
-            
+            resDiv.innerHTML = "Buscando para ti, mi tesoro... ✨";
+            img.style.display = "none";
+
             try {
                 const res = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${q}`);
                 const data = await res.json();
                 if(data.extract) {
-                    resDiv.innerHTML = `<b>Mi respuesta para ti, cariño:</b><br>${data.extract}`;
+                    resDiv.innerHTML = `<b>Mi amor, aquí tienes:</b><br>${data.extract}`;
+                    if(data.originalimage) {
+                        img.src = data.originalimage.source;
+                        img.style.display = "block";
+                    }
+                    subirKarma(5);
                 } else {
-                    resDiv.innerHTML = "Ay mi vida, no encontré eso exactamente. ¿Probamos con otra palabra?";
+                    resDiv.innerHTML = "Lo siento, corazón. No encontré una imagen real de eso. ¿Probamos con 'Castillo' o 'Catapulta'?";
                 }
             } catch {
-                resDiv.innerHTML = "Hubo un error, mi cielo. Inténtalo de nuevo.";
+                resDiv.innerHTML = "Hubo un pequeño error, mi vida.";
             }
         }
 
-        // Lógica del Juego
         let secreto = Math.floor(Math.random() * 100) + 1;
         function jugar() {
             let g = document.getElementById('guessInput').value;
             let m = document.getElementById('msgJuego');
             if(g == secreto) {
-                m.innerHTML = "¡ADIVINASTE! 🎉 Eres increíble.";
-                m.style.color = "#4caf50";
+                m.innerText = "¡ADIVINASTE! 🎉 (+20 Karma)";
+                subirKarma(20);
+                secreto = Math.floor(Math.random() * 100) + 1;
             } else {
-                m.innerHTML = g < secreto ? "Más alto, amor ⬆️" : "Más bajo, cielo ⬇️";
-                m.style.color = "#f44336";
+                m.innerText = g < secreto ? "Más alto, cariño ⬆️" : "Más bajo, cielo ⬇️";
             }
-        }
-
-        // Hidratación
-        let agua = 0;
-        function tomarAgua() {
-            agua++;
-            document.getElementById('waterCount').innerText = agua;
         }
     </script>
 </body>
