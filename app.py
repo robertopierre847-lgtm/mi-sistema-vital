@@ -2,7 +2,7 @@ from flask import Flask, render_template_string
 
 app = Flask(__name__)
 
-# --- DISEÑO INTEGRAL: NÚCLEO AZUL + HERRAMIENTAS VITALES ---
+# --- DISEÑO INTEGRAL: NÚCLEO AZUL + HERRAMIENTAS VITALES + JUEGO ADIVINANZAS ---
 diseno_html = """
 <!DOCTYPE html>
 <html lang="es">
@@ -71,6 +71,11 @@ diseno_html = """
             font-size: 0.9rem; box-shadow: 0 4px 10px rgba(0,0,0,0.02);
         }
         #resWiki { font-size: 0.85rem; text-align: left; margin-top: 15px; color: #444; line-height: 1.4; }
+
+        /* Estilos específicos para el juego de adivinanzas */
+        #guessInput { width: 60%; margin-right: 5px; display: inline-block; }
+        #guessBtn { width: 30%; display: inline-block; }
+        #guessMessage { margin-top: 15px; font-weight: 500; color: #333; }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;500;700&display=swap" rel="stylesheet">
 </head>
@@ -95,6 +100,15 @@ diseno_html = """
         <div id="timerDisplay">25:00</div>
         <button class="btn" onclick="toggleTimer()" id="btnTimer">Iniciar Ciclo</button>
         <button class="btn" onclick="resetTimer()" style="background:none; color:var(--azul-electrico); font-size:0.8rem; box-shadow:none;">Reiniciar</button>
+    </div>
+
+    <div class="panel">
+        <h2>Desafío Mental</h2>
+        <p>Adivina el número (entre 1 y 100).</p>
+        <input type="number" id="guessInput" placeholder="Tu número" min="1" max="100">
+        <button class="btn" id="guessBtn" onclick="checkGuess()">Adivinar</button>
+        <p id="guessMessage"></p>
+        <button class="btn" onclick="startGame()" style="background:#f1f2f6; color:#7f8c8d; box-shadow:none; font-size:0.8rem; margin-top:10px;">Nuevo Juego</button>
     </div>
 
     <div class="panel">
@@ -165,6 +179,41 @@ diseno_html = """
             document.getElementById('btnTimer').innerText = "Iniciar Ciclo";
         }
 
+        // --- LÓGICA JUEGO ADIVINANZAS ---
+        let randomNumber;
+        let attempts = 0;
+        function startGame() {
+            randomNumber = Math.floor(Math.random() * 100) + 1; // Número entre 1 y 100
+            attempts = 0;
+            document.getElementById('guessMessage').innerText = "¡He pensado un número!";
+            document.getElementById('guessInput').value = "";
+            document.getElementById('guessInput').disabled = false;
+            document.getElementById('guessBtn').disabled = false;
+        }
+        function checkGuess() {
+            const guess = parseInt(document.getElementById('guessInput').value);
+            const messageDisplay = document.getElementById('guessMessage');
+            
+            if (isNaN(guess) || guess < 1 || guess > 100) {
+                messageDisplay.innerText = "Por favor, introduce un número válido entre 1 y 100.";
+                return;
+            }
+
+            attempts++;
+            if (guess === randomNumber) {
+                messageDisplay.innerText = `¡Felicidades! Adivinaste el número ${randomNumber} en ${attempts} intentos.`;
+                document.getElementById('guessInput').disabled = true;
+                document.getElementById('guessBtn').disabled = true;
+            } else if (guess < randomNumber) {
+                messageDisplay.innerText = "Más alto.";
+            } else {
+                messageDisplay.innerText = "Más bajo.";
+            }
+        }
+        // Iniciar el juego al cargar la página por primera vez
+        document.addEventListener('DOMContentLoaded', startGame);
+
+
         // --- LÓGICA NOTAS ---
         function addNota() {
             const val = document.getElementById('notaIn').value;
@@ -199,4 +248,3 @@ def home():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
-    
