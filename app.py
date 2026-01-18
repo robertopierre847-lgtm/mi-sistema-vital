@@ -11,127 +11,134 @@ diseno_html = """
     <title>Sistema Vital: Plus Ultra</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
     <style>
+        :root { --main-blue: #007bff; --glass: rgba(255, 255, 255, 0.7); }
         body {
             margin: 0; font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 100%);
-            display: flex; flex-direction: column; align-items: center; padding: 20px; min-height: 100vh;
+            background: linear-gradient(45deg, #ffffff, #bbdefb);
+            background-attachment: fixed; display: flex; flex-direction: column; align-items: center; padding: 20px;
         }
+        /* Efecto Cristal */
         .card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(10px); border-radius: 25px; padding: 25px;
-            width: 100%; max-width: 400px; margin-bottom: 25px;
-            box-shadow: 0 15px 35px rgba(25, 118, 210, 0.1); text-align: center;
-            border: 1px solid rgba(255,255,255,0.6);
+            background: var(--glass); backdrop-filter: blur(15px);
+            border-radius: 25px; padding: 25px; width: 100%; max-width: 420px;
+            margin-bottom: 25px; border: 1px solid rgba(255,255,255,0.4);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center;
         }
-        h2 { color: #1976d2; margin-bottom: 15px; }
+        h2 { color: var(--main-blue); text-transform: uppercase; font-size: 1.2em; }
         .btn {
-            background: #1976d2; color: white; border: none; padding: 15px;
-            border-radius: 15px; width: 100%; cursor: pointer; font-weight: 700;
-            margin-bottom: 10px; transition: 0.3s;
+            background: var(--main-blue); color: white; border: none; padding: 12px;
+            border-radius: 12px; width: 100%; cursor: pointer; font-weight: 700; margin-top: 8px;
+            transition: 0.3s;
         }
-        .btn-success { background: #28a745 !important; transform: scale(1.05); }
-        .btn-error { background: #dc3545 !important; animation: shake 0.3s; }
-        @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-5px);} 75% {transform: translateX(5px);} }
-        .ia-box { text-align: left; background: white; padding: 15px; border-radius: 15px; border-left: 5px solid #1976d2; font-size: 14px; margin-top: 15px; }
-        #karma-bubble { position: fixed; top: 20px; left: 20px; background: #1976d2; color: white; padding: 10px 20px; border-radius: 50px; font-weight: bold; }
-        .img-ia { width: 100%; border-radius: 15px; margin-top: 15px; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .btn:hover { transform: scale(1.03); filter: brightness(1.1); }
+        /* All Might Miniatura */
+        #allmight-mini {
+            width: 80px; height: 80px; background: url('https://i.imgur.com/vH9vIqy.png') no-repeat center/contain;
+            position: fixed; bottom: 10px; right: 10px; z-index: 100; transition: 0.5s;
+        }
+        .bubble {
+            position: fixed; bottom: 90px; right: 20px; background: white;
+            padding: 10px; border-radius: 15px; font-size: 12px; font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2); max-width: 150px; display: none;
+        }
+        #karma-bubble { position: fixed; top: 20px; left: 20px; background: gold; color: black; padding: 10px 15px; border-radius: 50px; font-weight: bold; }
+        iframe { width: 100%; border-radius: 15px; margin-top: 10px; border: none; }
+        img { width: 100%; border-radius: 15px; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div id="karma-bubble">PODER: <span id="kVal">0</span>%</div>
-    <button class="btn" style="width:auto; background:#6c757d; font-size:0.8em;" onclick="toggleMute()" id="mBtn">🔊 VOZ: ACTIVA</button>
+    <div id="allmight-mini"></div>
+    <div class="bubble" id="am-talk">¡Ya estoy aquí!</div>
 
     <div class="card">
-        <h2>Buscador Romano 🏛️</h2>
-        <input type="text" id="iaInput" style="width:100%; padding:12px; border-radius:12px; border:1px solid #1976d2; box-sizing:border-box;" placeholder="¿Qué investigamos, joven?">
-        <button class="btn" style="margin-top:10px;" onclick="consultarIA()">¡BUSCAR CON PODER!</button>
-        <div id="iaRes" class="ia-box" style="display:none;"></div>
-        <img id="iaImg" class="img-ia" src="">
-        <button id="btnLeer" class="btn" style="display:none; background:#bbdefb; color:#0d47a1; margin-top:10px;" onclick="leerTexto()">🔊 ESCUCHAR ANÁLISIS</button>
+        <h2>Buscador de Historia 🏛️</h2>
+        <input type="text" id="iaInput" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd;" placeholder="Ej: Comida romana, Pompeya...">
+        <button class="btn" onclick="consultarIA()">¡IR MÁS ALLÁ!</button>
+        <div id="mediaRes"></div>
     </div>
 
     <div class="card">
-        <h2>Trivia All Might ⚔️</h2>
-        <p id="qText" style="font-weight: 700; font-size: 1.1em;"></p>
+        <h2>Trivia Heroica ⚔️</h2>
+        <p id="qText" style="font-weight: 700;"></p>
         <div id="optionsContainer"></div>
-        <button class="btn" id="nextBtn" style="display:none; background:#28a745;" onclick="siguientePregunta()">¡SIGUIENTE RETO!</button>
+        <button class="btn" id="nextBtn" style="display:none; background:#28a745;" onclick="siguiente()">¡OTRO RETO!</button>
     </div>
 
     <script>
-        let karma = 0; let pActual = 0; let textoLeido = ""; let mutear = false;
+        let karma = 0; let pActual = 0;
         const preguntas = [
-            { q: "¿Quién fue el primer emperador de Roma?", a: "Augusto", ops: ["Julio César", "Augusto", "Nerón"] },
-            { q: "¿Qué estructura transportaba agua?", a: "Acueducto", ops: ["Coliseo", "Acueducto", "Foro"] },
-            { q: "¿Cómo se llama la formación de tortuga?", a: "Testudo", ops: ["Legión", "Testudo", "Falange"] }
+            { q: "¿Cómo conservaban la carne los romanos?", a: "Salazón y Humo", ops: ["Neveras", "Salazón y Humo", "Miel"] },
+            { q: "¿Quién fue el gran estratega de Cartago?", a: "Aníbal", ops: ["Augusto", "Aníbal", "Nerón"] },
+            { q: "¿Qué era el Garum?", a: "Salsa de pescado", ops: ["Un tipo de pan", "Salsa de pescado", "Vino dulce"] }
         ];
 
         function hablar(msj) {
-            if (mutear) return;
             window.speechSynthesis.cancel();
             const utter = new SpeechSynthesisUtterance(msj);
-            utter.lang = 'es-ES'; utter.pitch = 0.7; utter.rate = 0.85;
+            utter.lang = 'es-ES'; utter.pitch = 0.8; utter.rate = 0.9;
             window.speechSynthesis.speak(utter);
-        }
-
-        function toggleMute() {
-            mutear = !mutear;
-            document.getElementById('mBtn').innerText = mutear ? "🔇 VOZ: SILENCIO" : "🔊 VOZ: ACTIVA";
+            document.getElementById('am-talk').innerText = msj;
+            document.getElementById('am-talk').style.display = "block";
+            setTimeout(() => document.getElementById('am-talk').style.display = "none", 4000);
         }
 
         function cargarPregunta() {
             const d = preguntas[pActual];
             document.getElementById('qText').innerText = d.q;
-            const c = document.getElementById('optionsContainer');
-            c.innerHTML = ""; document.getElementById('nextBtn').style.display = "none";
-            d.ops.forEach(o => {
+            const container = document.getElementById('optionsContainer');
+            container.innerHTML = "";
+            document.getElementById('nextBtn').style.display = "none";
+            
+            // Mezclar opciones para que no siempre sea la 2
+            let opciones = [...d.ops].sort(() => Math.random() - 0.5);
+
+            opciones.forEach(o => {
                 const b = document.createElement('button');
                 b.className = 'btn'; b.innerText = o;
                 b.onclick = (e) => {
-                    const btns = document.querySelectorAll('#optionsContainer .btn');
                     if(o === d.a) {
-                        e.target.classList.add('btn-success');
-                        hablar("¡JA JA JA! ¡Respuesta correcta, joven! ¡PLUS ULTRA!");
-                        karma += 30; document.getElementById('kVal').innerText = karma;
+                        e.target.style.background = "#28a745";
+                        hablar("¡JA JA JA! ¡Excelente joven! ¡PLUS ULTRA!");
+                        karma += 20; document.getElementById('kVal').innerText = karma;
                         document.getElementById('nextBtn').style.display = "block";
-                        btns.forEach(btn => { if(btn !== e.target) btn.disabled = true; });
                     } else {
-                        e.target.classList.add('btn-error');
-                        hablar("¡No te rindas! ¡Incluso los héroes cometen errores! ¡Prueba de nuevo!");
-                        setTimeout(() => e.target.classList.remove('btn-error'), 500);
+                        e.target.style.background = "#dc3545";
+                        hablar("¡No te rindas! ¡El fracaso es parte del camino del héroe!");
                     }
                 };
-                c.appendChild(b);
+                container.appendChild(b);
             });
         }
 
         async function consultarIA() {
             const t = document.getElementById('iaInput').value;
-            const res = document.getElementById('iaRes');
-            const img = document.getElementById('iaImg');
-            res.style.display = "block"; res.innerHTML = "¡Buscando con justicia!...";
-            img.style.display = "none";
+            const res = document.getElementById('mediaRes');
+            res.innerHTML = "¡Analizando archivos imperiales!... 🏛️";
             try {
                 const r = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${t}`);
                 const d = await r.json();
-                if(d.extract) {
-                    res.innerHTML = d.extract; textoLeido = d.extract;
-                    document.getElementById('btnLeer').style.display = "block";
-                    if(d.thumbnail) { img.src = d.thumbnail.source; img.style.display = "block"; }
+                let html = `<p>${d.extract || 'Información no encontrada'}</p>`;
+                if(d.thumbnail) html += `<img src="${d.thumbnail.source}">`;
+                
+                // Ejemplo de video estático sobre comida si busca "comida"
+                if(t.toLowerCase().includes("comida") || t.toLowerCase().includes("alimento")) {
+                    html += `<p><b>Video: Preservación en Roma</b></p><iframe height="200" src="https://www.youtube.com/embed/fD3l_oY6kpk" allowfullscreen></iframe>`;
                 }
-            } catch(e) { res.innerHTML = "¡Error! Pero un héroe nunca retrocede."; }
+                res.innerHTML = html;
+                hablar("¡He encontrado la información! ¡Mírala con atención!");
+            } catch(e) { res.innerHTML = "Error joven, pero un héroe no retrocede."; }
         }
 
-        function leerTexto() { hablar("¡Escucha joven! " + textoLeido); }
-        function siguientePregunta() { pActual = (pActual + 1) % preguntas.length; cargarPregunta(); }
-        window.onload = () => { cargarPregunta(); setTimeout(() => hablar("¡Ya estoy aquí para enseñarte historia!"), 1000); };
+        function siguiente() { pActual = (pActual + 1) % preguntas.length; cargarPregunta(); }
+        window.onload = () => { cargarPregunta(); hablar("¡YA ESTOY AQUÍ!"); };
     </script>
 </body>
 </html>
 """
 
 @app.route('/')
-def home():
-    return render_template_string(diseno_html)
+def home(): return render_template_string(diseno_html)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
