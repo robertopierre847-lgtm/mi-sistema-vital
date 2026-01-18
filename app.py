@@ -9,10 +9,10 @@ html_template = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roma Plus Ultra: Edición Cristal</title>
+    <title>Imperio Romano - Roberto Pierre</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --azul: #007bff; --cristal: rgba(255, 255, 255, 0.7); }
+        :root { --azul: #007bff; --cristal: rgba(255, 255, 255, 0.75); }
         
         body {
             margin: 0; font-family: 'Poppins', sans-serif;
@@ -21,7 +21,6 @@ html_template = """
             display: flex; flex-direction: column; align-items: center; min-height: 100vh;
         }
 
-        /* Pantalla de Intro Azul */
         #intro {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--azul); color: white; z-index: 9999;
@@ -29,7 +28,6 @@ html_template = """
             transition: 1s ease-in-out; text-align: center;
         }
 
-        /* Efecto Cristal y Flotante */
         .glass-card {
             background: var(--cristal);
             backdrop-filter: blur(15px);
@@ -48,67 +46,62 @@ html_template = """
             50% { transform: translateY(-15px); }
         }
 
-        /* Botones Estilo Héroe */
         .btn-hero {
             background: var(--azul); color: white; border: none;
             padding: 12px; width: 100%; border-radius: 12px;
             font-weight: bold; cursor: pointer; transition: 0.3s;
             margin-top: 10px; font-size: 16px;
         }
-        .btn-hero:hover { transform: scale(1.02); background: #0056b3; }
 
-        /* All Might Mini */
-        #am-mini {
+        /* MARCA DE AGUA ROBERTO PIERRE */
+        #watermark {
             position: fixed; bottom: 20px; right: 20px;
-            width: 80px; height: 80px; z-index: 1000;
-        }
-        #am-mini img {
-            width: 100%; height: 100%; border-radius: 50%;
-            border: 4px solid white; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            background: rgba(0, 123, 255, 0.2);
+            color: #007bff; padding: 10px 15px;
+            border-radius: 15px; font-weight: bold;
+            border: 1px solid #007bff; backdrop-filter: blur(5px);
+            font-size: 14px; z-index: 1000;
         }
 
-        /* Resultados del Buscador */
         #search-img { width: 100%; border-radius: 15px; margin-top: 15px; display: none; }
-        .reto-text { color: #dc3545; font-weight: bold; margin-top: 10px; display: none; }
+        .reto-text { color: #dc3545; font-weight: bold; margin-top: 15px; display: none; padding: 10px; border: 2px dashed #dc3545; border-radius: 10px; }
     </style>
 </head>
 <body>
 
     <div id="intro">
         <h1 style="font-size: 60px; margin: 0;">🏛️</h1>
-        <h2 style="padding: 0 20px;">¡SISTEMA VITAL ROMANO!</h2>
-        <button class="btn-hero" style="width: 200px; background: #ffcc00; color: #000;" onclick="entrar()">¡PLUS ULTRA!</button>
+        <h2>¡SISTEMA VITAL ROMANO!</h2>
+        <button class="btn-hero" style="width: 200px; background: #ffcc00; color: #000;" onclick="entrar()">¡ENTRAR!</button>
     </div>
 
-    <div id="am-mini">
-        <img src="https://images.fineartamerica.com/images/artworkimages/mediumlarge/3/all-might-my-hero-academia-andrea-matsumoto.jpg">
-    </div>
+    <div id="watermark">Roberto Pierre</div>
 
     <div class="glass-card" style="margin-top: 40px;">
-        <h2 style="color: var(--azul); margin-top: 0;">Buscador Imperial 🔍</h2>
-        <input type="text" id="bus" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; box-sizing: border-box;" placeholder="Busca Gladiadores, César...">
-        <button class="btn-hero" onclick="buscar()">CONSULTAR WIKIPEDIA</button>
+        <h2 style="color: var(--azul); margin-top: 0;">Buscador 🔍</h2>
+        <input type="text" id="bus" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; box-sizing: border-box;" placeholder="Busca en Wikipedia...">
+        <button class="btn-hero" onclick="buscar()">BUSCAR</button>
         <div id="res-txt" style="margin-top:15px; font-size: 14px; text-align: left;"></div>
         <img id="search-img">
     </div>
 
     <div class="glass-card">
-        <h2 style="color: var(--azul); margin-top: 0;">Trivia: Pregunta <span id="num">1</span>/30</h2>
+        <h2 style="color: var(--azul); margin-top: 0;">Pregunta <span id="num">1</span>/30</h2>
         <p id="pregunta" style="font-weight: bold; font-size: 17px;"></p>
         <div id="opciones"></div>
-        <div id="reto" class="reto-text">RETO: ¡Escribe 10 veces 'Perdí' en una hoja!</div>
+        <div id="reto" class="reto-text"></div>
     </div>
 
     <script>
         function entrar() {
             document.getElementById('intro').style.transform = 'translateY(-100%)';
-            hablar("¡Ya estoy aquí para enseñarte historia, joven!");
+            hablar("Bienvenido al Imperio Romano, Roberto.");
         }
 
         function hablar(t) {
             window.speechSynthesis.cancel();
             const u = new SpeechSynthesisUtterance(t);
-            u.lang = 'es-ES'; u.pitch = 0.8;
+            u.lang = 'es-ES'; u.rate = 0.9;
             window.speechSynthesis.speak(u);
         }
 
@@ -116,27 +109,57 @@ html_template = """
             const t = document.getElementById('bus').value;
             const txt = document.getElementById('res-txt');
             const img = document.getElementById('search-img');
-            txt.innerHTML = "Buscando en los archivos...";
+            txt.innerHTML = "Buscando...";
             try {
                 const r = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(t)}`);
                 const d = await r.json();
-                txt.innerHTML = d.extract || "No encontré nada, joven.";
-                if(d.thumbnail) {
-                    img.src = d.thumbnail.source;
-                    img.style.display = 'block';
-                } else { img.style.display = 'none'; }
-                hablar("He encontrado esto sobre " + t);
-            } catch(e) { txt.innerHTML = "Error de conexión."; }
+                txt.innerHTML = d.extract || "No encontré nada.";
+                if(d.thumbnail) { img.src = d.thumbnail.source; img.style.display = 'block'; }
+                else { img.style.display = 'none'; }
+            } catch(e) { txt.innerHTML = "Error."; }
         }
 
         const preguntas = [
-            {q: "¿Cómo conservaban los romanos la carne por meses?", a: "Salazón y Humo", ops: ["Hielo", "Salazón y Humo", "Azúcar"]},
-            {q: "¿Qué idioma hablaban los antiguos romanos?", a: "Latín", ops: ["Latín", "Griego", "Italiano"]},
-            {q: "¿Quién fue el primer emperador romano?", a: "Augusto", ops: ["Julio César", "Augusto", "Nerón"]}
-            // Agrega aquí las otras 27 preguntas...
+            {q: "¿Cómo conservaban los romanos la carne?", a: "Salazón y Humo", ops: ["Hielo", "Salazón y Humo", "Azúcar"]},
+            {q: "¿Qué idioma hablaban los romanos?", a: "Latín", ops: ["Latín", "Griego", "Italiano"]},
+            {q: "¿Quién fue el primer emperador romano?", a: "Augusto", ops: ["Julio César", "Augusto", "Nerón"]},
+            {q: "¿Qué animal amamantó a Rómulo y Remo?", a: "Loba", ops: ["Osa", "Loba", "Leona"]},
+            {q: "¿Dónde luchaban los gladiadores?", a: "Coliseo", ops: ["Teatro", "Coliseo", "Circo"]},
+            {q: "¿Cómo llamaban al Mar Mediterráneo?", a: "Mare Nostrum", ops: ["Mar Azul", "Mare Nostrum", "Mar Grande"]},
+            {q: "¿Qué llevaban los ciudadanos romanos?", a: "Toga", ops: ["Toga", "Capa", "Túnica"]},
+            {q: "¿Qué volcán destruyó Pompeya?", a: "Vesubio", ops: ["Etna", "Vesubio", "Teide"]},
+            {q: "¿Qué transportaba agua a las ciudades?", a: "Acueductos", ops: ["Canales", "Acueductos", "Tuberías"]},
+            {q: "¿Quién cruzó los Alpes con elefantes?", a: "Aníbal", ops: ["César", "Aníbal", "Atila"]},
+            {q: "¿Cuál era la moneda de plata?", a: "Denario", ops: ["Euro", "Denario", "Dracma"]},
+            {q: "¿Cómo se llamaba la plaza principal?", a: "Foro", ops: ["Plaza", "Foro", "Ágora"]},
+            {q: "¿Quién fue el dios del rayo?", a: "Júpiter", ops: ["Marte", "Júpiter", "Neptuno"]},
+            {q: "¿Qué material inventaron para construir?", a: "Hormigón", ops: ["Acero", "Hormigón", "Ladrillo"]},
+            {q: "¿Cómo se llamaba el jefe de 100 soldados?", a: "Centurión", ops: ["General", "Centurión", "Cabo"]},
+            {q: "¿Qué país actual es la cuna de Roma?", a: "Italia", ops: ["España", "Italia", "Francia"]},
+            {q: "¿Qué hacían para divertirse con agua?", a: "Termas", ops: ["Piscinas", "Termas", "Duchas"]},
+            {q: "¿Qué animal usaba Aníbal en guerra?", a: "Elefante", ops: ["Caballo", "Elefante", "Camello"]},
+            {q: "¿Cómo llamaban a los soldados?", a: "Legionarios", ops: ["Caballeros", "Legionarios", "Gladiadores"]},
+            {q: "¿Quién conquistó las Galias?", a: "Julio César", ops: ["Nerón", "Julio César", "Trajano"]},
+            {q: "¿Qué prenda NO usaban los hombres?", a: "Pantalones", ops: ["Togas", "Túnicas", "Pantalones"]},
+            {q: "¿Qué dios era el de la guerra?", a: "Marte", ops: ["Júpiter", "Marte", "Plutón"]},
+            {q: "¿Cuántas colinas tenía Roma?", a: "Siete", ops: ["Cinco", "Siete", "Diez"]},
+            {q: "¿Qué hacían en el Circo Máximo?", a: "Carreras de carros", ops: ["Teatro", "Carreras de carros", "Luchas"]},
+            {q: "¿Cómo se llamaba la familia rica?", a: "Patricios", ops: ["Plebeyos", "Patricios", "Esclavos"]},
+            {q: "¿Qué sistema hubo antes del Imperio?", a: "República", ops: ["Reino", "República", "Dictadura"]},
+            {q: "¿Cómo se llama el río de Roma?", a: "Tíber", ops: ["Nilo", "Tíber", "Ebro"]},
+            {q: "¿Qué emperador fue filósofo?", a: "Marco Aurelio", ops: ["Nerón", "Marco Aurelio", "Tito"]},
+            {q: "¿Cómo conservaban frutas?", a: "Miel", ops: ["Sal", "Miel", "Hielo"]},
+            {q: "¿Quién fue el último emperador?", a: "Rómulo Augústulo", ops: ["Augusto", "Rómulo Augústulo", "Constantino"]}
         ];
 
         let index = 0;
+        const retos = [
+            "RETO: ¡Escribe 10 veces 'Perdí' en una hoja!",
+            "RETO: ¡Haz 5 sentadillas ahora mismo!",
+            "RETO: ¡Cuenta hasta 20 en voz alta!",
+            "RETO: ¡Explica qué es un acueducto a alguien!"
+        ];
+
         function cargar() {
             const d = preguntas[index];
             document.getElementById('num').innerText = index + 1;
@@ -152,11 +175,19 @@ html_template = """
                 b.onclick = () => {
                     if(o === d.a) {
                         b.style.background = "#28a745";
-                        hablar("¡Soberbio! ¡Siguiente nivel!");
-                        setTimeout(() => { index++; if(index < preguntas.length) cargar(); }, 1000);
+                        hablar("¡Correcto!");
+                        setTimeout(() => { 
+                            index++; 
+                            if(index < preguntas.length) cargar(); 
+                            else { 
+                                document.getElementById('pregunta').innerText = "¡FELICIDADES ROBERTO, GANASTE!"; 
+                                cont.innerHTML = "";
+                            }
+                        }, 1000);
                     } else {
                         b.style.background = "#dc3545";
-                        hablar("¡Fallaste! ¡Cumple tu reto escolar!");
+                        hablar("¡Fallaste!");
+                        rTxt.innerText = retos[Math.floor(Math.random()*retos.length)];
                         rTxt.style.display = "block";
                     }
                 };
@@ -174,6 +205,5 @@ def home():
     return render_template_string(html_template)
 
 if __name__ == '__main__':
-    # Esto es lo que evita el error Status 1 en Render
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port)
