@@ -1,4 +1,5 @@
 import os
+import random
 from flask import Flask, render_template_string
 
 app = Flask(__name__)
@@ -53,7 +54,6 @@ html_template = """
             margin-top: 10px; font-size: 16px;
         }
 
-        /* MARCA DE AGUA ROBERTO PIERRE */
         #watermark {
             position: fixed; bottom: 20px; right: 20px;
             background: rgba(0, 123, 255, 0.2);
@@ -63,7 +63,6 @@ html_template = """
             font-size: 14px; z-index: 1000;
         }
 
-        #search-img { width: 100%; border-radius: 15px; margin-top: 15px; display: none; }
         .reto-text { color: #dc3545; font-weight: bold; margin-top: 15px; display: none; padding: 10px; border: 2px dashed #dc3545; border-radius: 10px; }
     </style>
 </head>
@@ -82,7 +81,7 @@ html_template = """
         <input type="text" id="bus" style="width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; box-sizing: border-box;" placeholder="Busca en Wikipedia...">
         <button class="btn-hero" onclick="buscar()">BUSCAR</button>
         <div id="res-txt" style="margin-top:15px; font-size: 14px; text-align: left;"></div>
-        <img id="search-img">
+        <img id="search-img" style="width: 100%; border-radius: 15px; margin-top: 15px; display: none;">
     </div>
 
     <div class="glass-card">
@@ -95,7 +94,7 @@ html_template = """
     <script>
         function entrar() {
             document.getElementById('intro').style.transform = 'translateY(-100%)';
-            hablar("Bienvenido al Imperio Romano, Roberto.");
+            hablar("Sistema actualizado. Lógica de juego activada.");
         }
 
         function hablar(t) {
@@ -155,10 +154,18 @@ html_template = """
         let index = 0;
         const retos = [
             "RETO: ¡Escribe 10 veces 'Perdí' en una hoja!",
-            "RETO: ¡Haz 5 sentadillas ahora mismo!",
-            "RETO: ¡Cuenta hasta 20 en voz alta!",
-            "RETO: ¡Explica qué es un acueducto a alguien!"
+            "RETO: ¡Haz 10 sentadillas!",
+            "RETO: ¡Dibuja un casco romano rápido!",
+            "RETO: ¡Escribe 10 veces 'Debo estudiar más'!"
         ];
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
 
         function cargar() {
             const d = preguntas[index];
@@ -168,25 +175,28 @@ html_template = """
             const rTxt = document.getElementById('reto');
             cont.innerHTML = ""; rTxt.style.display = "none";
 
-            d.ops.forEach(o => {
+            // Mezclar opciones para que la respuesta no esté siempre en el medio
+            const opcionesMezcladas = shuffle([...d.ops]);
+
+            opcionesMezcladas.forEach(o => {
                 const b = document.createElement('button');
                 b.className = 'btn-hero';
                 b.innerText = o;
                 b.onclick = () => {
                     if(o === d.a) {
                         b.style.background = "#28a745";
-                        hablar("¡Correcto!");
+                        hablar("¡Excelente!");
                         setTimeout(() => { 
                             index++; 
                             if(index < preguntas.length) cargar(); 
                             else { 
-                                document.getElementById('pregunta').innerText = "¡FELICIDADES ROBERTO, GANASTE!"; 
-                                cont.innerHTML = "";
+                                document.getElementById('pregunta').innerText = "¡VICTORIA TOTAL ROBERTO!"; 
+                                cont.innerHTML = "🏆";
                             }
-                        }, 1000);
+                        }, 800);
                     } else {
                         b.style.background = "#dc3545";
-                        hablar("¡Fallaste!");
+                        hablar("Mal. Haz el reto.");
                         rTxt.innerText = retos[Math.floor(Math.random()*retos.length)];
                         rTxt.style.display = "block";
                     }
@@ -198,12 +208,3 @@ html_template = """
     </script>
 </body>
 </html>
-"""
-
-@app.route('/')
-def home():
-    return render_template_string(html_template)
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port)
