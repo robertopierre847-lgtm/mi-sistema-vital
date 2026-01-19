@@ -31,32 +31,21 @@ html_template = """
             margin: 20px 0; border: 1px solid rgba(255,255,255,0.6);
             box-shadow: 0 20px 40px rgba(0, 123, 255, 0.15); text-align: center;
         }
-
         input[type="text"] {
             width: 100%; padding: 12px; border-radius: 15px;
-            background: rgba(255, 255, 255, 0.4);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.7);
-            box-sizing: border-box; outline: none;
-            color: #333; font-weight: bold;
-            transition: 0.3s ease;
+            background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.7); outline: none;
+            color: #333; font-weight: bold; transition: 0.3s;
         }
-        input[type="text"]:focus {
-            box-shadow: 0 0 15px rgba(0, 123, 255, 0.5);
-            border: 1px solid var(--azul);
-        }
-
-        #search-img {
-            width: 100%; border-radius: 15px; margin-top: 15px; 
-            display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
+        input[type="text"]:focus { box-shadow: 0 0 15px rgba(0, 123, 255, 0.5); border: 1px solid var(--azul); }
+        
+        #search-img { width: 100%; border-radius: 15px; margin-top: 15px; display: none; }
 
         #meme-win {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
-            z-index: 10000; width: 300px; height: 300px; background: white;
-            border-radius: 20px; border: 8px solid #ffcc00; overflow: hidden;
-            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 10000; width: 280px; height: 280px; background: white;
+            border-radius: 20px; border: 6px solid gold; overflow: hidden;
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             display: flex; justify-content: center; align-items: center;
         }
         #meme-win.show { transform: translate(-50%, -50%) scale(1); }
@@ -68,14 +57,14 @@ html_template = """
         }
         #t-bar-cont { width: 100%; height: 8px; background: #eee; border-radius: 10px; margin: 10px 0; overflow: hidden; }
         #t-bar { width: 100%; height: 100%; background: var(--azul); transition: 1s linear; }
-        #watermark { position: fixed; bottom: 20px; left: 20px; background: white; color: var(--azul); padding: 10px; border-radius: 10px; font-weight: bold; border: 2px solid var(--azul); font-size: 12px; }
+        #watermark { position: fixed; bottom: 20px; left: 20px; background: white; color: var(--azul); padding: 10px; border-radius: 10px; font-weight: bold; border: 2px solid var(--azul); font-size: 11px; }
         .reto-box { margin-top: 15px; padding: 15px; border: 3px dashed var(--rojo); color: var(--rojo); display: none; border-radius: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div id="intro">
         <h1>🏛️</h1>
-        <h2>SISTEMA VITAL ACTUALIZADO</h2>
+        <h2>SISTEMA VITAL - DESAFÍO FINAL</h2>
         <button class="btn-hero" style="width: 200px; background: gold; color: black;" onclick="entrar()">¡EMPEZAR!</button>
     </div>
 
@@ -84,14 +73,14 @@ html_template = """
 
     <div class="glass-card" style="margin-top: 70px;">
         <h3 style="color: var(--azul); margin-top:0;">Buscador 🔍</h3>
-        <input type="text" id="bus" onkeypress="if(event.key==='Enter') buscar()" placeholder="Busca en los archivos...">
+        <input type="text" id="bus" onkeypress="if(event.key==='Enter') buscar()" placeholder="Investiga aquí...">
         <button class="btn-hero" onclick="buscar()">CONSULTAR</button>
-        <div id="res-txt" style="font-size: 13px; margin-top: 10px; text-align: left; line-height: 1.4;"></div>
+        <div id="res-txt" style="font-size: 13px; margin-top: 10px; text-align: left;"></div>
         <img id="search-img" src="">
     </div>
 
     <div class="glass-card">
-        <div style="font-weight: bold; color: var(--rojo);">⏱️ <span id="segundos">15</span>s</div>
+        <div style="font-weight: bold; color: var(--rojo);">⏱️ <span id="segundos">15</span>s | Pregunta <span id="num-pregunta">1</span>/30</div>
         <div id="t-bar-cont"><div id="t-bar"></div></div>
         <p id="pregunta" style="font-weight: bold; font-size: 18px;"></p>
         <div id="opciones"></div>
@@ -100,10 +89,9 @@ html_template = """
 
     <script>
         let idx = 0; let tiempo = 15; let reloj;
-        const memes = [
-            "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJueXF4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKMGpxx7S9xm0BW/giphy.gif",
-            "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJueXF4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/S8BllEizYv8s/giphy.gif",
-            "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJueXF4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/10YqOasfL05hO8/giphy.gif"
+        const memesAcierto = [
+            "https://i.ibb.co/LkhYt5y/pitufo.jpg",
+            "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJueXF4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKMGpxx7S9xm0BW/giphy.gif"
         ];
 
         function entrar() { document.getElementById('intro').style.transform = 'translateY(-100%)'; cargar(); }
@@ -119,76 +107,73 @@ html_template = """
 
         async function buscar() {
             const t = document.getElementById('bus').value;
-            const txt = document.getElementById('res-txt');
-            const img = document.getElementById('search-img');
+            const resTxt = document.getElementById('res-txt');
+            const resImg = document.getElementById('search-img');
             if(!t) return;
-            txt.innerText = "Buscando...";
+            resTxt.innerText = "Buscando...";
             try {
                 const res = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(t)}`);
                 const d = await res.json();
-                txt.innerText = d.extract || "No hay información disponible.";
-                if(d.thumbnail) {
-                    img.src = d.thumbnail.source;
-                    img.style.display = "block";
-                } else {
-                    img.style.display = "none";
-                }
-            } catch(e) { txt.innerText = "Error de conexión."; }
+                resTxt.innerText = d.extract || "Sin resultados.";
+                if(d.thumbnail) { resImg.src = d.thumbnail.source; resImg.style.display = "block"; } 
+                else { resImg.style.display = "none"; }
+            } catch(e) { resTxt.innerText = "Error."; }
         }
 
         function mostrarMeme() {
             const m = document.getElementById('meme-win');
-            document.getElementById('meme-img').src = memes[Math.floor(Math.random()*memes.length)];
+            document.getElementById('meme-img').src = memesAcierto[Math.floor(Math.random()*memesAcierto.length)];
             m.classList.add('show');
-            setTimeout(() => { m.classList.remove('show'); }, 1500);
+            setTimeout(() => { m.classList.remove('show'); }, 1400);
         }
 
         function fallar() {
-            document.getElementById('reto').innerText = "RETO: ¡Escribe 10 veces 'Perdí'!";
             document.getElementById('reto').style.display = "block";
+            document.getElementById('reto').innerText = "RETO: Escribe 10 veces 'Perdí' en una hoja.";
         }
 
         const trivia = [
-            {q: "¿Cómo conservaban los romanos la carne?", a: "Salazón y Humo", ops: ["Hielo", "Salazón y Humo", "Azúcar"]},
-            {q: "¿Qué idioma hablaban los romanos?", a: "Latín", ops: ["Latín", "Griego", "Italiano"]},
-            {q: "¿Quién fue el primer emperador romano?", a: "Augusto", ops: ["Julio César", "Augusto", "Nerón"]},
-            {q: "¿Qué animal amamantó a Rómulo y Remo?", a: "Loba", ops: ["Osa", "Loba", "Leona"]},
-            {q: "¿Dónde luchaban los gladiadores?", a: "Coliseo", ops: ["Teatro", "Coliseo", "Circo"]},
-            {q: "¿Cómo llamaban al Mar Mediterráneo?", a: "Mare Nostrum", ops: ["Mar Azul", "Mare Nostrum", "Mar Grande"]},
-            {q: "¿Qué llevaban los ciudadanos romanos?", a: "Toga", ops: ["Toga", "Capa", "Túnica"]},
-            {q: "¿Qué volcán destruyó Pompeya?", a: "Vesubio", ops: ["Etna", "Vesubio", "Teide"]},
-            {q: "¿Qué transportaba agua?", a: "Acueductos", ops: ["Canales", "Acueductos", "Tuberías"]},
-            {q: "¿Quién usó elefantes en la guerra?", a: "Aníbal", ops: ["César", "Aníbal", "Atila"]},
-            {q: "¿Cuál era la moneda de plata?", a: "Denario", ops: ["Euro", "Denario", "Dracma"]},
-            {q: "¿Cómo se llamaba la plaza principal?", a: "Foro", ops: ["Plaza", "Foro", "Ágora"]},
-            {q: "¿Quién era el dios del rayo?", a: "Júpiter", ops: ["Marte", "Júpiter", "Neptuno"]},
-            {q: "¿Qué material usaban para construir?", a: "Hormigón", ops: ["Acero", "Hormigón", "Ladrillo"]},
-            {q: "¿Cómo se llamaba el jefe de 100 soldados?", a: "Centurión", ops: ["General", "Centurión", "Cabo"]},
-            {q: "¿En qué país está la ciudad de Roma?", a: "Italia", ops: ["España", "Italia", "Francia"]},
-            {q: "¿Qué eran las termas?", a: "Baños públicos", ops: ["Cárceles", "Baños públicos", "Escuelas"]},
-            {q: "¿Cómo se llamaban los soldados?", a: "Legionarios", ops: ["Caballeros", "Legionarios", "Gladiadores"]},
-            {q: "¿Quién conquistó las Galias?", a: "Julio César", ops: ["Nerón", "Julio César", "Trajano"]},
-            {q: "¿Cuántas colinas tenía Roma?", a: "Siete", ops: ["Cinco", "Siete", "Diez"]},
-            {q: "¿Qué hacían en el Circo Máximo?", a: "Carreras de carros", ops: ["Teatro", "Carreras de carros", "Luchas"]},
-            {q: "¿Cómo se llamaba la familia rica?", a: "Patricios", ops: ["Plebeyos", "Patricios", "Esclavos"]},
-            {q: "¿Qué sistema hubo antes del Imperio?", a: "República", ops: ["Reino", "República", "Dictadura"]},
-            {q: "¿Cómo se llama el río de Roma?", a: "Tíber", ops: ["Nilo", "Tíber", "Ebro"]},
-            {q: "¿Qué emperador fue filósofo?", a: "Marco Aurelio", ops: ["Nerón", "Marco Aurelio", "Tito"]},
-            {q: "¿Cómo conservaban frutas?", a: "Miel", ops: ["Sal", "Miel", "Hielo"]},
-            {q: "¿Qué usaban para escribir?", a: "Estilo y cera", ops: ["Bolígrafo", "Estilo y cera", "Lápiz"]},
-            {q: "¿Qué dios era el de la guerra?", a: "Marte", ops: ["Júpiter", "Marte", "Plutón"]},
-            {q: "¿Quién fue el último emperador?", a: "Rómulo Augústulo", ops: ["Augusto", "Rómulo Augústulo", "Constantino"]},
-            {q: "¿Qué ciudad era la rival de Roma?", a: "Cartago", ops: ["Atenas", "Cartago", "Esparta"]}
+            {q: "¿Primer emperador romano?", a: "Augusto", ops: ["César", "Augusto", "Nerón"]},
+            {q: "¿Idioma de Roma?", a: "Latín", ops: ["Latín", "Griego", "Italiano"]},
+            {q: "¿Cómo conservaban carne?", a: "Salazón", ops: ["Hielo", "Salazón", "Miel"]},
+            {q: "¿Animal que crió a Rómulo?", a: "Loba", ops: ["Osa", "Loba", "Perra"]},
+            {q: "¿Dónde peleaban gladiadores?", a: "Coliseo", ops: ["Teatro", "Coliseo", "Circo"]},
+            {q: "¿Volcán de Pompeya?", a: "Vesubio", ops: ["Etna", "Vesubio", "Teide"]},
+            {q: "¿Llevaban los ciudadanos?", a: "Toga", ops: ["Capa", "Toga", "Túnica"]},
+            {q: "¿Traía agua a la ciudad?", a: "Acueducto", ops: ["Canal", "Acueducto", "Tubo"]},
+            {q: "¿Dios del rayo?", a: "Júpiter", ops: ["Marte", "Júpiter", "Apolo"]},
+            {q: "¿Jefe de 100 soldados?", a: "Centurión", ops: ["General", "Centurión", "Cabo"]},
+            {q: "¿Río que pasa por Roma?", a: "Tíber", ops: ["Nilo", "Tíber", "Sena"]},
+            {q: "¿País actual de Roma?", a: "Italia", ops: ["España", "Italia", "Grecia"]},
+            {q: "¿Baños públicos romanos?", a: "Termas", ops: ["Termas", "Duchas", "Fuentes"]},
+            {q: "¿Soldados de Roma?", a: "Legionarios", ops: ["Caballeros", "Legionarios", "Hoplitas"]},
+            {q: "¿Conquistó las Galias?", a: "Julio César", ops: ["Nerón", "Julio César", "Tito"]},
+            {q: "¿Cuántas colinas tenía Roma?", a: "Siete", ops: ["Cinco", "Siete", "Nueve"]},
+            {q: "¿Carreras de carros?", a: "Circo Máximo", ops: ["Coliseo", "Circo Máximo", "Foro"]},
+            {q: "¿Clase social rica?", a: "Patricios", ops: ["Plebeyos", "Patricios", "Esclavos"]},
+            {q: "¿Antes del Imperio fue...?", a: "República", ops: ["Reino", "República", "Dictadura"]},
+            {q: "¿Emperador filósofo?", a: "Marco Aurelio", ops: ["Trajano", "Marco Aurelio", "Nerón"]},
+            {q: "¿Dios de la guerra?", a: "Marte", ops: ["Marte", "Plutón", "Baco"]},
+            {q: "¿Moneda de plata?", a: "Denario", ops: ["Euro", "Denario", "Dracma"]},
+            {q: "¿Plaza central?", a: "Foro", ops: ["Plaza", "Foro", "Mercado"]},
+            {q: "¿Material de construcción?", a: "Hormigón", ops: ["Acero", "Hormigón", "Ladrillo"]},
+            {q: "¿Último emperador?", a: "Rómulo Augústulo", ops: ["Augusto", "Rómulo Augústulo", "Tito"]},
+            {q: "¿Ciudad rival?", a: "Cartago", ops: ["Atenas", "Cartago", "Esparta"]},
+            {q: "¿Qué usaban para endulzar?", a: "Miel", ops: ["Azúcar", "Miel", "Sal"]},
+            {q: "¿Enemigo con elefantes?", a: "Aníbal", ops: ["Atila", "Aníbal", "Jerjes"]},
+            {q: "¿Diosa del amor?", a: "Venus", ops: ["Venus", "Diana", "Minerva"]},
+            {q: "¿Mar de los romanos?", a: "Mare Nostrum", ops: ["Mar Rojo", "Mare Nostrum", "Mar Muerto"]}
         ];
 
         function cargar() {
-            if(idx >= trivia.length) { document.getElementById('pregunta').innerText = "¡VICTORIA TOTAL ROBERTO PIERRE!"; return; }
+            if(idx >= trivia.length) { document.getElementById('pregunta').innerText = "¡SISTEMA COMPLETADO CON ÉXITO!"; return; }
+            document.getElementById('num-pregunta').innerText = idx + 1;
             const d = trivia[idx];
             document.getElementById('pregunta').innerText = d.q;
             const cont = document.getElementById('opciones');
             cont.innerHTML = ""; document.getElementById('reto').style.display = "none";
             iniciarReloj();
-            [...d.ops].sort(()=>Math.random()-0.5).forEach(o => {
+            [...d.ops].forEach(o => {
                 const b = document.createElement('button');
                 b.className = 'btn-hero'; b.innerText = o;
                 b.onclick = () => {
@@ -201,3 +186,12 @@ html_template = """
     </script>
 </body>
 </html>
+"""
+
+@app.route('/')
+def home(): return render_template_string(html_template)
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 8080))
+    app.run(host='0.0.0.0', port=port)
+    
