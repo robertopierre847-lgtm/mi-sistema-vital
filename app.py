@@ -21,7 +21,7 @@ html_template = """
             overflow-x: hidden;
         }
         
-        /* 1. LUCES DINÁMICAS DETRÁS DEL GLASSMORPHISM */
+        /* Luces de fondo corregidas */
         .bg-circle {
             position: fixed; width: 300px; height: 300px; border-radius: 50%;
             filter: blur(80px); z-index: -1; animation: move 10s infinite alternate;
@@ -41,42 +41,34 @@ html_template = """
             border-radius: 30px; padding: 25px; width: 90%; max-width: 450px;
             margin: 20px 0; border: 1px solid rgba(255,255,255,0.6);
             box-shadow: 0 20px 40px rgba(0, 123, 255, 0.15); text-align: center;
-            position: relative;
+            position: relative; z-index: 10;
         }
         input[type="text"] {
             width: 100%; padding: 12px; border-radius: 15px; box-sizing: border-box;
-            background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.7); outline: none;
-            color: #333; font-weight: bold; transition: 0.3s;
+            background: rgba(255, 255, 255, 0.4); border: 1px solid rgba(255, 255, 255, 0.7);
+            outline: none; color: #333; font-weight: bold;
         }
-        input[type="text"]:focus { box-shadow: 0 0 15px rgba(0, 123, 255, 0.5); border: 1px solid var(--azul); }
         
-        #search-img { width: 100%; border-radius: 15px; margin-top: 15px; display: none; }
+        #search-img { width: 100%; border-radius: 15px; margin-top: 15px; display: none; object-fit: cover; max-height: 250px; }
 
         #meme-win {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
             z-index: 10000; width: 280px; height: 280px; background: white;
             border-radius: 20px; border: 6px solid gold; overflow: hidden;
             transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            display: flex; justify-content: center; align-items: center;
         }
         #meme-win.show { transform: translate(-50%, -50%) scale(1); }
-        #meme-win img { width: 100%; height: 100%; object-fit: contain; }
+        #meme-win img { width: 100%; height: 100%; object-fit: cover; }
 
         .btn-hero { 
             background: var(--azul); color: white; border: none; padding: 14px; 
             width: 100%; border-radius: 15px; font-weight: bold; margin-top: 10px; cursor: pointer;
-            transition: 0.2s;
         }
-        .btn-hero:active { transform: scale(0.95); }
-
         #t-bar-cont { width: 100%; height: 8px; background: #eee; border-radius: 10px; margin: 10px 0; overflow: hidden; }
         #t-bar { width: 100%; height: 100%; background: var(--azul); transition: 1s linear; }
         #watermark { position: fixed; bottom: 20px; left: 20px; background: white; color: var(--azul); padding: 10px; border-radius: 10px; font-weight: bold; border: 2px solid var(--azul); font-size: 11px; z-index: 100; }
         .reto-box { margin-top: 15px; padding: 15px; border: 3px dashed var(--rojo); color: var(--rojo); display: none; border-radius: 15px; font-weight: bold; }
-
-        /* Estilo Rango */
-        #rango-txt { font-size: 12px; color: var(--azul); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        #rango-txt { font-size: 12px; color: var(--azul); font-weight: bold; margin-bottom: 5px; }
     </style>
 </head>
 <body>
@@ -97,26 +89,26 @@ html_template = """
         <input type="text" id="bus" onkeypress="if(event.key==='Enter') buscar()" placeholder="Investiga aquí...">
         <button class="btn-hero" onclick="buscar()">CONSULTAR</button>
         <div id="res-txt" style="font-size: 13px; margin-top: 10px; text-align: left;"></div>
-        <img id="search-img" src="">
+        <img id="search-img" src="" alt="Resultado">
     </div>
 
     <div class="glass-card">
         <div id="rango-txt">Rango: Plebeyo</div>
-        <div style="font-weight: bold; color: var(--rojo);">⏱️ <span id="segundos">15</span>s | Pregunta <span id="num-pregunta">1</span>/30</div>
+        <div style="font-weight: bold; color: var(--rojo);">⏱️ <span id="segundos">15</span>s | <span id="num-pregunta">1</span>/30</div>
         <div id="t-bar-cont"><div id="t-bar"></div></div>
-        <p id="pregunta" style="font-weight: bold; font-size: 18px;"></p>
+        <p id="pregunta" style="font-weight: bold; font-size: 18px; margin: 15px 0;"></p>
         <div id="opciones"></div>
         <div id="reto" class="reto-box"></div>
     </div>
 
     <script>
         let idx = 0; let tiempo = 15; let reloj;
+        // Enlaces de imágenes más robustos (Giphy y Unsplash)
         const memesAcierto = [
-            "https://i.ibb.co/LkhYt5y/pitufo.jpg",
-            "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJueXF4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKMGpxx7S9xm0BW/giphy.gif"
+            "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJueXF4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKMGpxx7S9xm0BW/giphy.gif",
+            "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNndicm9ueXF4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l41lTfuxmS0U87Q9G/giphy.gif"
         ];
 
-        // RANGOS
         function actualizarRango() {
             let r = "Plebeyo";
             if(idx > 5) r = "Soldado";
@@ -126,10 +118,7 @@ html_template = """
             document.getElementById('rango-txt').innerText = "Rango: " + r;
         }
 
-        function entrar() { 
-            document.getElementById('intro').style.transform = 'translateY(-100%)'; 
-            cargar(); 
-        }
+        function entrar() { document.getElementById('intro').style.transform = 'translateY(-100%)'; cargar(); }
         
         function iniciarReloj() {
             clearInterval(reloj); tiempo = 15;
@@ -147,17 +136,19 @@ html_template = """
             if(!t) return;
             resTxt.innerText = "Buscando...";
             try {
+                // Usamos la API de Wikipedia con origen permitido
                 const res = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(t)}`);
                 const d = await res.json();
                 resTxt.innerText = d.extract || "Sin resultados.";
                 if(d.thumbnail) { resImg.src = d.thumbnail.source; resImg.style.display = "block"; } 
                 else { resImg.style.display = "none"; }
-            } catch(e) { resTxt.innerText = "Error."; }
+            } catch(e) { resTxt.innerText = "Error en la conexión."; }
         }
 
         function mostrarMeme() {
             const m = document.getElementById('meme-win');
-            document.getElementById('meme-img').src = memesAcierto[Math.floor(Math.random()*memesAcierto.length)];
+            const img = document.getElementById('meme-img');
+            img.src = memesAcierto[Math.floor(Math.random()*memesAcierto.length)];
             m.classList.add('show');
             setTimeout(() => { m.classList.remove('show'); }, 1400);
         }
@@ -203,8 +194,8 @@ html_template = """
         function cargar() {
             actualizarRango();
             if(idx >= trivia.length) { 
-                document.getElementById('pregunta').innerHTML = "<h2 style='color:gold'>¡LO LOGRASTE!</h2><p>Eres el nuevo EMPERADOR de Roma.</p><button class='btn-hero' onclick='location.reload()'>REINICIAR IMPERIO</button>"; 
-                document.getElementById('opciones').innerHTML = "";
+                document.getElementById('pregunta').innerHTML = "<span style='color:gold'>🏆 ¡AVE CÉSAR!</span><br>Has conquistado el Sistema Vital."; 
+                document.getElementById('opciones').innerHTML = "<button class='btn-hero' onclick='location.reload()'>REINICIAR</button>";
                 return; 
             }
             document.getElementById('num-pregunta').innerText = idx + 1;
@@ -213,16 +204,11 @@ html_template = """
             const cont = document.getElementById('opciones');
             cont.innerHTML = ""; document.getElementById('reto').style.display = "none";
             iniciarReloj();
-            [...d.ops].forEach(o => {
+            [...d.ops].sort(()=>Math.random()-0.5).forEach(o => {
                 const b = document.createElement('button');
                 b.className = 'btn-hero'; b.innerText = o;
                 b.onclick = () => {
-                    if(o === d.a) { 
-                        clearInterval(reloj); 
-                        b.style.background = "#28a745"; 
-                        mostrarMeme(); 
-                        setTimeout(() => { idx++; cargar(); }, 1600); 
-                    }
+                    if(o === d.a) { clearInterval(reloj); b.style.background = "#28a745"; mostrarMeme(); setTimeout(() => { idx++; cargar(); }, 1600); }
                     else { clearInterval(reloj); b.style.background = "var(--rojo)"; fallar(); }
                 };
                 cont.appendChild(b);
@@ -239,3 +225,4 @@ def home(): return render_template_string(html_template)
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port)
+    
