@@ -3,6 +3,7 @@ from flask import Flask, render_template_string
 
 app = Flask(__name__)
 
+# HTML con el diseño original Blanco/Azul, Intro de Águila y Buscador Cristal
 html_template = """
 <!DOCTYPE html>
 <html lang="es">
@@ -15,7 +16,7 @@ html_template = """
         :root { 
             --azul: #007bff; 
             --rojo: #dc3545; 
-            --cristal: rgba(255, 255, 255, 0.7); 
+            --cristal: rgba(255, 255, 255, 0.75); 
         }
         
         body {
@@ -44,7 +45,7 @@ html_template = """
 
         /* --- BUSCADOR EFECTO CRISTAL --- */
         .glass-card-search {
-            background: rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.35);
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
             border: 1px solid rgba(255, 255, 255, 0.6);
@@ -53,7 +54,6 @@ html_template = """
             box-shadow: 0 15px 35px rgba(0, 123, 255, 0.1);
         }
 
-        /* --- CARTAS Y BOTONES ORIGINALES --- */
         .glass-card {
             background: var(--cristal); backdrop-filter: blur(10px);
             border-radius: 30px; padding: 25px; width: 90%; max-width: 450px;
@@ -71,19 +71,9 @@ html_template = """
 
         input[type="text"] {
             width: 100%; padding: 12px; border-radius: 15px; box-sizing: border-box;
-            background: rgba(255, 255, 255, 0.6); border: 1px solid var(--azul);
+            background: rgba(255, 255, 255, 0.7); border: 1px solid var(--azul);
             outline: none; color: #333; font-weight: bold; margin-bottom: 10px;
         }
-
-        /* Luces de fondo */
-        .bg-circle {
-            position: fixed; width: 300px; height: 300px; border-radius: 50%;
-            filter: blur(80px); z-index: -1; animation: move 10s infinite alternate;
-        }
-        .c1 { background: rgba(0, 123, 255, 0.2); top: 10%; left: 10%; }
-        .c2 { background: rgba(0, 255, 255, 0.15); bottom: 10%; right: 10%; }
-
-        @keyframes move { from { transform: translate(0,0); } to { transform: translate(50px, 80px); } }
 
         #watermark { position: fixed; bottom: 20px; left: 20px; background: white; color: var(--azul); padding: 8px 12px; border-radius: 10px; font-weight: bold; border: 2px solid var(--azul); font-size: 11px; z-index: 100; }
         .reto-box { margin-top: 15px; padding: 15px; border: 3px dashed var(--rojo); color: var(--rojo); display: none; border-radius: 15px; font-weight: bold; }
@@ -94,17 +84,15 @@ html_template = """
     <div id="intro-capa" onclick="picotear()">
         <div class="crack" id="vidrio"></div>
         <div id="aguila-anim">🦅</div>
-        <h2 style="font-family: 'Cinzel'; color: var(--azul); margin-top: 20px;">TOCA PARA QUE EL ÁGUILA ABRA LA PANTALLA</h2>
+        <h2 style="font-family: 'Cinzel'; color: var(--azul); margin-top: 20px;">TOCA PARA ROMPER LA PANTALLA</h2>
         <p id="hits-txt" style="color: #666;">Picotazos restantes: 5</p>
     </div>
 
-    <div class="bg-circle c1"></div>
-    <div class="bg-circle c2"></div>
     <div id="watermark">ROBERTO PIERRE</div>
 
     <div class="glass-card-search">
-        <h3 style="color: var(--azul); margin-top:0; font-family: 'Cinzel';">Buscador de la Legión 🔍</h3>
-        <input type="text" id="bus" placeholder="Escribe para investigar...">
+        <h3 style="color: var(--azul); margin-top:0; font-family: 'Cinzel';">Buscador Imperial 🔍</h3>
+        <input type="text" id="bus" placeholder="Investigar historia...">
         <button class="btn-hero" onclick="buscar()">CONSULTAR</button>
         <div id="res-txt" style="font-size: 13px; margin-top: 10px; text-align: left; color: #444;"></div>
     </div>
@@ -123,51 +111,42 @@ html_template = """
             const aguila = document.getElementById('aguila-anim');
             const vidrio = document.getElementById('vidrio');
             const capa = document.getElementById('intro-capa');
-            
             clicks--;
             document.getElementById('hits-txt').innerText = "Picotazos restantes: " + clicks;
-            
-            // Animación de picotazo
             aguila.style.transform = "scale(1.4) translateY(30px)";
             setTimeout(() => { aguila.style.transform = "scale(1)"; }, 100);
-
-            // Aparecen grietas poco a poco
             if(clicks <= 3) vidrio.style.opacity = "0.4";
             if(clicks <= 1) vidrio.style.opacity = "0.8";
-
             if(clicks <= 0) {
                 capa.style.transform = "scale(1.5)";
                 capa.style.opacity = "0";
-                setTimeout(() => { 
-                    capa.style.display = "none"; 
-                    cargar(); 
-                }, 600);
+                setTimeout(() => { capa.style.display = "none"; cargar(); }, 600);
             }
         }
 
         let idx = 0;
         const trivia = [
-            {q: "¿Primer emperador romano?", a: "Augusto", ops: ["César", "Augusto", "Nerón"]},
-            {q: "¿Idioma de Roma?", a: "Latín", ops: ["Latín", "Griego", "Italiano"]},
-            {q: "¿Dónde peleaban los gladiadores?", a: "Coliseo", ops: ["Teatro", "Coliseo", "Circo"]}
-            // Aquí puedes seguir añadiendo tus 30 preguntas
+            {q: "¿Primer emperador de Roma?", a: "Augusto", ops: ["César", "Augusto", "Nerón"]},
+            {q: "¿Idioma de los romanos?", a: "Latín", ops: ["Latín", "Griego", "Italiano"]},
+            {q: "¿Lugar de lucha de gladiadores?", a: "Coliseo", ops: ["Teatro", "Coliseo", "Circo"]}
+            // Agrega aquí más preguntas hasta completar 30
         ];
 
         async function buscar() {
             const t = document.getElementById('bus').value;
             const resTxt = document.getElementById('res-txt');
             if(!t) return;
-            resTxt.innerText = "Buscando en los pergaminos...";
+            resTxt.innerText = "Consultando pergaminos...";
             try {
                 const res = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(t)}`);
                 const d = await res.json();
-                resTxt.innerText = d.extract || "No hay resultados.";
-            } catch(e) { resTxt.innerText = "Error de conexión."; }
+                resTxt.innerText = d.extract || "No se encontraron registros.";
+            } catch(e) { resTxt.innerText = "Error en la conexión."; }
         }
 
         function cargar() {
             if(idx >= trivia.length) {
-                document.getElementById('pregunta').innerText = "¡VICTORIA IMPERIAL!";
+                document.getElementById('pregunta').innerText = "¡HAS CONQUISTADO ROMA!";
                 document.getElementById('opciones').innerHTML = "";
                 return;
             }
@@ -184,7 +163,7 @@ html_template = """
                     if(o === d.a) { idx++; cargar(); }
                     else { 
                         document.getElementById('reto').style.display = "block";
-                        document.getElementById('reto').innerText = "RETO: Escribe 'Roma es eterna' 5 veces.";
+                        document.getElementById('reto').innerText = "FALLASTE: Escribe 'Roma es grande' en un papel.";
                     }
                 };
                 cont.appendChild(b);
@@ -193,3 +172,13 @@ html_template = """
     </script>
 </body>
 </html>
+"""
+
+@app.route('/')
+def home():
+    return render_template_string(html_template)
+
+if __name__ == '__main__':
+    # Configuración para que Render no dé error de puerto
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
