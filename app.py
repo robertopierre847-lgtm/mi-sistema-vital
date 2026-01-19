@@ -10,9 +10,10 @@ html_template = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Imperio Romano - Roberto Pierre</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Cinzel:wght@700&display=swap" rel="stylesheet">
     <style>
-        :root { --azul: #007bff; --rojo: #dc3545; --cristal: rgba(255, 255, 255, 0.85); }
+        :root { --azul: #007bff; --rojo: #dc3545; --cristal: rgba(255, 255, 255, 0.85); --oro: #ffcc00; }
+        
         body {
             margin: 0; font-family: 'Poppins', sans-serif;
             background: linear-gradient(135deg, #ffffff 0%, #bbdefb 100%);
@@ -20,8 +21,45 @@ html_template = """
             display: flex; flex-direction: column; align-items: center; min-height: 100vh;
             overflow-x: hidden;
         }
-        
-        /* Luces de fondo corregidas */
+
+        /* --- ANIMACIÓN DE INTRODUCCIÓN ÉPICA --- */
+        #intro {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
+            color: white; z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            transition: 1s cubic-bezier(0.7, 0, 0.3, 1); text-align: center;
+            overflow: hidden;
+        }
+
+        /* Partículas de ceniza/fuego */
+        .particle {
+            position: absolute; background: rgba(255, 100, 0, 0.6);
+            border-radius: 50%; pointer-events: none;
+            animation: rise 4s infinite linear;
+        }
+        @keyframes rise {
+            0% { transform: translateY(100vh) scale(0); opacity: 1; }
+            100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
+        }
+
+        .title-epic {
+            font-family: 'Cinzel', serif; font-size: 2.5rem;
+            color: var(--oro); text-shadow: 0 0 20px rgba(255, 204, 0, 0.6);
+            animation: glow 2s infinite alternate; margin-bottom: 5px;
+        }
+        @keyframes glow { from { opacity: 0.8; transform: scale(1); } to { opacity: 1; transform: scale(1.05); } }
+
+        /* Efecto de Sacudida al hacer click */
+        .shake { animation: shake-anim 0.5s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake-anim {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        /* Luces de fondo del juego */
         .bg-circle {
             position: fixed; width: 300px; height: 300px; border-radius: 50%;
             filter: blur(80px); z-index: -1; animation: move 10s infinite alternate;
@@ -30,12 +68,6 @@ html_template = """
         .c2 { background: rgba(0, 255, 255, 0.2); bottom: 10%; right: 10%; animation-delay: -5s; }
         @keyframes move { from { transform: translate(0,0); } to { transform: translate(50px, 100px); } }
 
-        #intro {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--azul); color: white; z-index: 9999;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-            transition: 0.8s; text-align: center;
-        }
         .glass-card {
             background: var(--cristal); backdrop-filter: blur(15px);
             border-radius: 30px; padding: 25px; width: 90%; max-width: 450px;
@@ -43,13 +75,13 @@ html_template = """
             box-shadow: 0 20px 40px rgba(0, 123, 255, 0.15); text-align: center;
             position: relative; z-index: 10;
         }
-        input[type="text"] {
-            width: 100%; padding: 12px; border-radius: 15px; box-sizing: border-box;
-            background: rgba(255, 255, 255, 0.4); border: 1px solid rgba(255, 255, 255, 0.7);
-            outline: none; color: #333; font-weight: bold;
+
+        .btn-hero { 
+            background: var(--azul); color: white; border: none; padding: 14px; 
+            width: 100%; border-radius: 15px; font-weight: bold; margin-top: 10px; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: 0.3s;
         }
-        
-        #search-img { width: 100%; border-radius: 15px; margin-top: 15px; display: none; object-fit: cover; max-height: 250px; }
+        .btn-hero:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,123,255,0.4); }
 
         #meme-win {
             position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
@@ -60,27 +92,22 @@ html_template = """
         #meme-win.show { transform: translate(-50%, -50%) scale(1); }
         #meme-win img { width: 100%; height: 100%; object-fit: cover; }
 
-        .btn-hero { 
-            background: var(--azul); color: white; border: none; padding: 14px; 
-            width: 100%; border-radius: 15px; font-weight: bold; margin-top: 10px; cursor: pointer;
-        }
         #t-bar-cont { width: 100%; height: 8px; background: #eee; border-radius: 10px; margin: 10px 0; overflow: hidden; }
         #t-bar { width: 100%; height: 100%; background: var(--azul); transition: 1s linear; }
         #watermark { position: fixed; bottom: 20px; left: 20px; background: white; color: var(--azul); padding: 10px; border-radius: 10px; font-weight: bold; border: 2px solid var(--azul); font-size: 11px; z-index: 100; }
         .reto-box { margin-top: 15px; padding: 15px; border: 3px dashed var(--rojo); color: var(--rojo); display: none; border-radius: 15px; font-weight: bold; }
-        #rango-txt { font-size: 12px; color: var(--azul); font-weight: bold; margin-bottom: 5px; }
     </style>
 </head>
 <body>
-    <div class="bg-circle c1"></div>
-    <div class="bg-circle c2"></div>
-
     <div id="intro">
-        <h1>🏛️</h1>
-        <h2>SISTEMA VITAL - DESAFÍO FINAL</h2>
-        <button class="btn-hero" style="width: 200px; background: gold; color: black;" onclick="entrar()">¡EMPEZAR!</button>
+        <h1 style="font-size: 50px; margin: 0;">🦅</h1>
+        <h2 class="title-epic">ROMA: SISTEMA VITAL</h2>
+        <p style="color: #ccc; letter-spacing: 2px;">EL DESAFÍO DE ROBERTO PIERRE</p>
+        <button class="btn-hero" style="width: 220px; background: var(--oro); color: black;" onclick="iniciarConEfecto()">EMPEZAR GLORIA</button>
     </div>
 
+    <div class="bg-circle c1"></div>
+    <div class="bg-circle c2"></div>
     <div id="meme-win"><img id="meme-img" src=""></div>
     <div id="watermark">ROBERTO PIERRE</div>
 
@@ -89,11 +116,11 @@ html_template = """
         <input type="text" id="bus" onkeypress="if(event.key==='Enter') buscar()" placeholder="Investiga aquí...">
         <button class="btn-hero" onclick="buscar()">CONSULTAR</button>
         <div id="res-txt" style="font-size: 13px; margin-top: 10px; text-align: left;"></div>
-        <img id="search-img" src="" alt="Resultado">
+        <img id="search-img" src="" style="width: 100%; border-radius: 15px; margin-top: 15px; display: none;">
     </div>
 
     <div class="glass-card">
-        <div id="rango-txt">Rango: Plebeyo</div>
+        <div id="rango-txt" style="font-size: 12px; color: var(--azul); font-weight: bold;">Rango: Plebeyo</div>
         <div style="font-weight: bold; color: var(--rojo);">⏱️ <span id="segundos">15</span>s | <span id="num-pregunta">1</span>/30</div>
         <div id="t-bar-cont"><div id="t-bar"></div></div>
         <p id="pregunta" style="font-weight: bold; font-size: 18px; margin: 15px 0;"></p>
@@ -102,12 +129,35 @@ html_template = """
     </div>
 
     <script>
+        // Crear partículas de ceniza
+        const intro = document.getElementById('intro');
+        for (let i = 0; i < 30; i++) {
+            let p = document.createElement('div');
+            p.className = 'particle';
+            p.style.left = Math.random() * 100 + 'vw';
+            p.style.width = p.style.height = Math.random() * 5 + 3 + 'px';
+            p.style.animationDelay = Math.random() * 4 + 's';
+            intro.appendChild(p);
+        }
+
         let idx = 0; let tiempo = 15; let reloj;
-        // Enlaces de imágenes más robustos (Giphy y Unsplash)
         const memesAcierto = [
             "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJueXF4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKMGpxx7S9xm0BW/giphy.gif",
             "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNndicm9ueXF4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/l41lTfuxmS0U87Q9G/giphy.gif"
         ];
+
+        function iniciarConEfecto() {
+            document.body.classList.add('shake');
+            setTimeout(() => {
+                document.getElementById('intro').style.transform = 'scale(2)';
+                document.getElementById('intro').style.opacity = '0';
+                setTimeout(() => { 
+                    document.getElementById('intro').style.display = 'none';
+                    document.body.classList.remove('shake');
+                    cargar(); 
+                }, 800);
+            }, 400);
+        }
 
         function actualizarRango() {
             let r = "Plebeyo";
@@ -118,8 +168,6 @@ html_template = """
             document.getElementById('rango-txt').innerText = "Rango: " + r;
         }
 
-        function entrar() { document.getElementById('intro').style.transform = 'translateY(-100%)'; cargar(); }
-        
         function iniciarReloj() {
             clearInterval(reloj); tiempo = 15;
             reloj = setInterval(() => {
@@ -134,21 +182,19 @@ html_template = """
             const resTxt = document.getElementById('res-txt');
             const resImg = document.getElementById('search-img');
             if(!t) return;
-            resTxt.innerText = "Buscando...";
+            resTxt.innerText = "Consultando archivos imperiales...";
             try {
-                // Usamos la API de Wikipedia con origen permitido
                 const res = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(t)}`);
                 const d = await res.json();
                 resTxt.innerText = d.extract || "Sin resultados.";
                 if(d.thumbnail) { resImg.src = d.thumbnail.source; resImg.style.display = "block"; } 
                 else { resImg.style.display = "none"; }
-            } catch(e) { resTxt.innerText = "Error en la conexión."; }
+            } catch(e) { resTxt.innerText = "Error de conexión."; }
         }
 
         function mostrarMeme() {
             const m = document.getElementById('meme-win');
-            const img = document.getElementById('meme-img');
-            img.src = memesAcierto[Math.floor(Math.random()*memesAcierto.length)];
+            document.getElementById('meme-img').src = memesAcierto[Math.floor(Math.random()*memesAcierto.length)];
             m.classList.add('show');
             setTimeout(() => { m.classList.remove('show'); }, 1400);
         }
@@ -194,7 +240,7 @@ html_template = """
         function cargar() {
             actualizarRango();
             if(idx >= trivia.length) { 
-                document.getElementById('pregunta').innerHTML = "<span style='color:gold'>🏆 ¡AVE CÉSAR!</span><br>Has conquistado el Sistema Vital."; 
+                document.getElementById('pregunta').innerHTML = "<h2 style='color:gold'>🏆 ¡AVE CÉSAR!</h2>Has conquistado Roma."; 
                 document.getElementById('opciones').innerHTML = "<button class='btn-hero' onclick='location.reload()'>REINICIAR</button>";
                 return; 
             }
@@ -225,4 +271,3 @@ def home(): return render_template_string(html_template)
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port)
-    
