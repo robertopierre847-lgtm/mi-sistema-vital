@@ -18,7 +18,18 @@ html_template = """
             background: linear-gradient(135deg, #ffffff 0%, #bbdefb 100%);
             background-attachment: fixed;
             display: flex; flex-direction: column; align-items: center; min-height: 100vh;
+            overflow-x: hidden;
         }
+        
+        /* 1. LUCES DINÁMICAS DETRÁS DEL GLASSMORPHISM */
+        .bg-circle {
+            position: fixed; width: 300px; height: 300px; border-radius: 50%;
+            filter: blur(80px); z-index: -1; animation: move 10s infinite alternate;
+        }
+        .c1 { background: rgba(0, 123, 255, 0.3); top: 10%; left: 10%; }
+        .c2 { background: rgba(0, 255, 255, 0.2); bottom: 10%; right: 10%; animation-delay: -5s; }
+        @keyframes move { from { transform: translate(0,0); } to { transform: translate(50px, 100px); } }
+
         #intro {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--azul); color: white; z-index: 9999;
@@ -30,9 +41,10 @@ html_template = """
             border-radius: 30px; padding: 25px; width: 90%; max-width: 450px;
             margin: 20px 0; border: 1px solid rgba(255,255,255,0.6);
             box-shadow: 0 20px 40px rgba(0, 123, 255, 0.15); text-align: center;
+            position: relative;
         }
         input[type="text"] {
-            width: 100%; padding: 12px; border-radius: 15px;
+            width: 100%; padding: 12px; border-radius: 15px; box-sizing: border-box;
             background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.7); outline: none;
             color: #333; font-weight: bold; transition: 0.3s;
@@ -54,14 +66,23 @@ html_template = """
         .btn-hero { 
             background: var(--azul); color: white; border: none; padding: 14px; 
             width: 100%; border-radius: 15px; font-weight: bold; margin-top: 10px; cursor: pointer;
+            transition: 0.2s;
         }
+        .btn-hero:active { transform: scale(0.95); }
+
         #t-bar-cont { width: 100%; height: 8px; background: #eee; border-radius: 10px; margin: 10px 0; overflow: hidden; }
         #t-bar { width: 100%; height: 100%; background: var(--azul); transition: 1s linear; }
-        #watermark { position: fixed; bottom: 20px; left: 20px; background: white; color: var(--azul); padding: 10px; border-radius: 10px; font-weight: bold; border: 2px solid var(--azul); font-size: 11px; }
+        #watermark { position: fixed; bottom: 20px; left: 20px; background: white; color: var(--azul); padding: 10px; border-radius: 10px; font-weight: bold; border: 2px solid var(--azul); font-size: 11px; z-index: 100; }
         .reto-box { margin-top: 15px; padding: 15px; border: 3px dashed var(--rojo); color: var(--rojo); display: none; border-radius: 15px; font-weight: bold; }
+
+        /* Estilo Rango */
+        #rango-txt { font-size: 12px; color: var(--azul); font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
     </style>
 </head>
 <body>
+    <div class="bg-circle c1"></div>
+    <div class="bg-circle c2"></div>
+
     <div id="intro">
         <h1>🏛️</h1>
         <h2>SISTEMA VITAL - DESAFÍO FINAL</h2>
@@ -80,6 +101,7 @@ html_template = """
     </div>
 
     <div class="glass-card">
+        <div id="rango-txt">Rango: Plebeyo</div>
         <div style="font-weight: bold; color: var(--rojo);">⏱️ <span id="segundos">15</span>s | Pregunta <span id="num-pregunta">1</span>/30</div>
         <div id="t-bar-cont"><div id="t-bar"></div></div>
         <p id="pregunta" style="font-weight: bold; font-size: 18px;"></p>
@@ -94,7 +116,20 @@ html_template = """
             "https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHJueXF4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4JmVwPXYxX2ludGVybmFsX2dpZl9ieV9pZCZjdD1n/3o7TKMGpxx7S9xm0BW/giphy.gif"
         ];
 
-        function entrar() { document.getElementById('intro').style.transform = 'translateY(-100%)'; cargar(); }
+        // RANGOS
+        function actualizarRango() {
+            let r = "Plebeyo";
+            if(idx > 5) r = "Soldado";
+            if(idx > 12) r = "Centurión";
+            if(idx > 20) r = "Senador";
+            if(idx > 28) r = "Emperador";
+            document.getElementById('rango-txt').innerText = "Rango: " + r;
+        }
+
+        function entrar() { 
+            document.getElementById('intro').style.transform = 'translateY(-100%)'; 
+            cargar(); 
+        }
         
         function iniciarReloj() {
             clearInterval(reloj); tiempo = 15;
@@ -166,7 +201,12 @@ html_template = """
         ];
 
         function cargar() {
-            if(idx >= trivia.length) { document.getElementById('pregunta').innerText = "¡SISTEMA COMPLETADO CON ÉXITO!"; return; }
+            actualizarRango();
+            if(idx >= trivia.length) { 
+                document.getElementById('pregunta').innerHTML = "<h2 style='color:gold'>¡LO LOGRASTE!</h2><p>Eres el nuevo EMPERADOR de Roma.</p><button class='btn-hero' onclick='location.reload()'>REINICIAR IMPERIO</button>"; 
+                document.getElementById('opciones').innerHTML = "";
+                return; 
+            }
             document.getElementById('num-pregunta').innerText = idx + 1;
             const d = trivia[idx];
             document.getElementById('pregunta').innerText = d.q;
@@ -177,7 +217,12 @@ html_template = """
                 const b = document.createElement('button');
                 b.className = 'btn-hero'; b.innerText = o;
                 b.onclick = () => {
-                    if(o === d.a) { clearInterval(reloj); b.style.background = "#28a745"; mostrarMeme(); setTimeout(() => { idx++; cargar(); }, 1600); }
+                    if(o === d.a) { 
+                        clearInterval(reloj); 
+                        b.style.background = "#28a745"; 
+                        mostrarMeme(); 
+                        setTimeout(() => { idx++; cargar(); }, 1600); 
+                    }
                     else { clearInterval(reloj); b.style.background = "var(--rojo)"; fallar(); }
                 };
                 cont.appendChild(b);
