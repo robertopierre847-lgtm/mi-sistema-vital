@@ -12,7 +12,7 @@ html_template = """
     <title>Imperio Romano - Roberto Pierre</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root { --azul: #007bff; --cristal: rgba(255, 255, 255, 0.8); }
+        :root { --azul: #007bff; --rojo: #dc3545; --cristal: rgba(255, 255, 255, 0.85); }
         body {
             margin: 0; font-family: 'Poppins', sans-serif;
             background: linear-gradient(135deg, #ffffff 0%, #bbdefb 100%);
@@ -23,56 +23,68 @@ html_template = """
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--azul); color: white; z-index: 9999;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            transition: 0.8s; text-align: center;
+            transition: 0.8s ease-in-out; text-align: center;
         }
         .glass-card {
             background: var(--cristal); backdrop-filter: blur(15px);
-            border-radius: 25px; padding: 25px; width: 90%; max-width: 450px;
-            margin: 20px 0; border: 1px solid rgba(255,255,255,0.5);
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1); text-align: center;
+            border-radius: 30px; padding: 25px; width: 90%; max-width: 450px;
+            margin: 20px 0; border: 1px solid rgba(255,255,255,0.6);
+            box-shadow: 0 20px 40px rgba(0, 123, 255, 0.15); text-align: center;
             animation: float 5s ease-in-out infinite;
         }
-        @keyframes float { 0%, 100% {transform: translateY(0);} 50% {transform: translateY(-10px);} }
+        @keyframes float { 0%, 100% {transform: translateY(0);} 50% {transform: translateY(-12px);} }
+        
+        #t-bar-cont { width: 100%; height: 8px; background: #eee; border-radius: 10px; margin-bottom: 15px; overflow: hidden; }
+        #t-bar { width: 100%; height: 100%; background: var(--azul); transition: 1s linear; }
+        
         .btn-hero { 
-            background: var(--azul); color: white; border: none; padding: 12px; 
-            width: 100%; border-radius: 12px; font-weight: bold; margin-top: 10px; 
-            cursor: pointer; font-size: 16px; transition: 0.3s;
+            background: var(--azul); color: white; border: none; padding: 14px; 
+            width: 100%; border-radius: 15px; font-weight: bold; margin-top: 10px; 
+            cursor: pointer; font-size: 16px; transition: 0.2s;
         }
-        #timer-box {
-            font-size: 24px; font-weight: bold; color: #dc3545; margin-bottom: 10px;
+
+        /* CAPA DE MEME DE VICTORIA */
+        #meme-win {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+            z-index: 10000; width: 280px; height: 280px; background: white;
+            border-radius: 20px; border: 5px solid gold; box-shadow: 0 0 50px rgba(0,0,0,0.5);
+            display: flex; justify-content: center; align-items: center; overflow: hidden;
+            transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
+        #meme-win img { width: 100%; height: 100%; object-fit: cover; }
+        #meme-win.show { transform: translate(-50%, -50%) scale(1); }
+
         #watermark {
-            position: fixed; bottom: 15px; left: 15px; background: rgba(0,123,255,0.1);
-            color: var(--azul); padding: 8px 12px; border-radius: 10px;
-            font-weight: bold; font-size: 12px; border: 1px solid var(--azul);
+            position: fixed; bottom: 20px; left: 20px; background: white;
+            color: var(--azul); padding: 10px 15px; border-radius: 15px;
+            font-weight: bold; font-size: 12px; border: 2px solid var(--azul);
         }
-        .reto-box { 
-            margin-top: 15px; padding: 10px; border: 2px dashed #dc3545; 
-            color: #dc3545; background: #fff1f0; display: none; border-radius: 10px; font-weight: bold; 
-        }
+        .reto-box { margin-top: 15px; padding: 15px; border: 3px dashed var(--rojo); color: var(--rojo); background: #fff5f5; display: none; border-radius: 15px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div id="intro">
-        <h1 style="font-size: 4em;">🏛️</h1>
-        <h2>SISTEMA VITAL CON TIEMPO</h2>
-        <button class="btn-hero" style="width: 200px; background: gold; color: black;" onclick="entrar()">¡ENTRAR!</button>
+        <h1 style="font-size: 5em; margin:0;">🏛️</h1>
+        <h2>SISTEMA VITAL MEME PRO</h2>
+        <button class="btn-hero" style="width: 200px; background: #ffcc00; color: black;" onclick="entrar()">¡EMPEZAR!</button>
     </div>
 
-    <div id="watermark">Roberto Pierre - Diseño Clave</div>
+    <div id="meme-win"><img id="meme-img" src=""></div>
 
-    <div class="glass-card" style="margin-top: 50px;">
-        <h2 style="color: var(--azul);">Buscador 🔍</h2>
-        <input type="text" id="bus" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; box-sizing: border-box;" placeholder="Busca en Wikipedia...">
-        <button class="btn-hero" onclick="buscar()">BUSCAR INFO E IMAGEN</button>
+    <div id="watermark">ROBERTO PIERRE - CLAVE</div>
+
+    <div class="glass-card" style="margin-top: 60px;">
+        <h2 style="color: var(--azul); margin-bottom: 10px;">Buscador 🔍</h2>
+        <input type="text" id="bus" onkeypress="if(event.key==='Enter') buscar()" style="width:100%; padding:12px; border-radius:12px; border:1px solid #ccc;" placeholder="Ej: César...">
+        <button class="btn-hero" onclick="buscar()">CONSULTAR</button>
         <div id="res-txt" style="margin-top:10px; font-size: 14px; text-align: left;"></div>
-        <img id="search-img" style="width: 100%; border-radius: 15px; margin-top: 10px; display: none;">
     </div>
 
     <div class="glass-card">
-        <div id="timer-box">⏱️ <span id="segundos">15</span>s</div>
-        <h2 style="color: var(--azul);">Pregunta <span id="num">1</span>/30</h2>
-        <p id="pregunta" style="font-weight: bold; font-size: 18px;"></p>
+        <div id="timer-box" style="font-size: 24px; font-weight: bold; color: var(--rojo);">⏱️ <span id="segundos">15</span>s</div>
+        <div id="t-bar-cont"><div id="t-bar"></div></div>
+        <h3 style="color: var(--azul);">Pregunta <span id="num">1</span> de 30</h3>
+        <p id="pregunta" style="font-weight: bold; font-size: 18px; color: #333;"></p>
         <div id="opciones"></div>
         <div id="reto" class="reto-box"></div>
     </div>
@@ -82,44 +94,46 @@ html_template = """
         let tiempo = 15;
         let reloj;
 
+        const memes = [
+            "https://i.ibb.co/LkhYt5y/pitufo.jpg", // Aquí irían las URLs de los memes que me pasaste
+            "https://i.pinimg.com/originals/9f/6e/8b/9f6e8b4e2808c1064299066666f076f7.jpg",
+            "https://pbs.twimg.com/media/F5_U58SWIAAhV_l.jpg",
+            "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR0YwJ6W2jQy7Bq0W3A6VzX_8m-X6oX6nF_UA&s"
+        ];
+
         function entrar() { 
             document.getElementById('intro').style.transform = 'translateY(-100%)'; 
-            iniciarReloj();
+            cargar();
         }
 
         function iniciarReloj() {
             clearInterval(reloj);
             tiempo = 15;
-            document.getElementById('segundos').innerText = tiempo;
+            actualizarBarra();
             reloj = setInterval(() => {
                 tiempo--;
                 document.getElementById('segundos').innerText = tiempo;
-                if(tiempo <= 0) {
-                    clearInterval(reloj);
-                    fallar("¡SE ACABÓ EL TIEMPO!");
-                }
+                actualizarBarra();
+                if(tiempo <= 0) { clearInterval(reloj); fallar("¡TIEMPO!"); }
             }, 1000);
         }
 
-        function fallar(msg) {
-            const rTxt = document.getElementById('reto');
-            rTxt.innerText = msg + " RETO: ¡Escribe 10 veces 'Perdí' en una hoja!";
-            rTxt.style.display = "block";
-            window.speechSynthesis.speak(new SpeechSynthesisUtterance("Tiempo agotado. Haz el reto."));
+        function actualizarBarra() {
+            document.getElementById('t-bar').style.width = (tiempo / 15 * 100) + "%";
+            document.getElementById('t-bar').style.background = tiempo < 6 ? "var(--rojo)" : "var(--azul)";
         }
 
-        async function buscar() {
-            const t = document.getElementById('bus').value;
-            const txt = document.getElementById('res-txt');
-            const img = document.getElementById('search-img');
-            txt.innerHTML = "Buscando...";
-            try {
-                const r = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(t)}`);
-                const d = await r.json();
-                txt.innerHTML = d.extract || "No se encontró nada.";
-                if(d.thumbnail) { img.src = d.thumbnail.source; img.style.display = 'block'; }
-                else { img.style.display = 'none'; }
-            } catch(e) { txt.innerHTML = "Error."; }
+        function mostrarMeme() {
+            const m = document.getElementById('meme-win');
+            const img = document.getElementById('meme-img');
+            img.src = memes[Math.floor(Math.random() * memes.length)];
+            m.classList.add('show');
+            setTimeout(() => { m.classList.remove('show'); }, 1200);
+        }
+
+        function fallar(msg) {
+            document.getElementById('reto').innerText = msg + " RETO: ¡Escribe 10 veces 'Perdí'!";
+            document.getElementById('reto').style.display = "block";
         }
 
         const trivia = [
@@ -156,33 +170,32 @@ html_template = """
         ];
 
         function cargar() {
+            if(idx >= 30) { document.getElementById('pregunta').innerText = "🏆 ¡VICTORIA!"; return; }
             const d = trivia[idx];
             document.getElementById('num').innerText = idx + 1;
             document.getElementById('pregunta').innerText = d.q;
             const cont = document.getElementById('opciones');
-            const rTxt = document.getElementById('reto');
-            cont.innerHTML = ""; rTxt.style.display = "none";
+            cont.innerHTML = ""; document.getElementById('reto').style.display = "none";
             iniciarReloj();
 
-            const mezcla = [...d.ops].sort(() => Math.random() - 0.5);
-            mezcla.forEach(o => {
+            [...d.ops].sort(()=>Math.random()-0.5).forEach(o => {
                 const b = document.createElement('button');
                 b.className = 'btn-hero'; b.innerText = o;
                 b.onclick = () => {
                     if(o === d.a) {
                         clearInterval(reloj);
                         b.style.background = "#28a745";
-                        setTimeout(() => { idx++; if(idx < 30) cargar(); else alert("¡VICTORIA!"); }, 600);
+                        mostrarMeme(); // SALTA LA CARA XD
+                        setTimeout(() => { idx++; cargar(); }, 1400);
                     } else {
                         clearInterval(reloj);
-                        b.style.background = "#dc3545";
-                        fallar("¡INCORRECTO!");
+                        b.style.background = "var(--rojo)";
+                        fallar("¡MAL!");
                     }
                 };
                 cont.appendChild(b);
             });
         }
-        window.onload = cargar;
     </script>
 </body>
 </html>
@@ -194,3 +207,4 @@ def home(): return render_template_string(html_template)
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port)
+    
