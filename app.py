@@ -32,7 +32,6 @@ html_template = """
             box-shadow: 0 20px 40px rgba(0, 123, 255, 0.15); text-align: center;
         }
 
-        /* BARRA DE BUSCAR CRISTAL CON SOMBRA AZUL AL CLICAR */
         input[type="text"] {
             width: 100%; padding: 12px; border-radius: 15px;
             background: rgba(255, 255, 255, 0.4);
@@ -46,6 +45,11 @@ html_template = """
         input[type="text"]:focus {
             box-shadow: 0 0 15px rgba(0, 123, 255, 0.5);
             border: 1px solid var(--azul);
+        }
+
+        #search-img {
+            width: 100%; border-radius: 15px; margin-top: 15px; 
+            display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
 
         #meme-win {
@@ -82,7 +86,8 @@ html_template = """
         <h3 style="color: var(--azul); margin-top:0;">Buscador 🔍</h3>
         <input type="text" id="bus" onkeypress="if(event.key==='Enter') buscar()" placeholder="Busca en los archivos...">
         <button class="btn-hero" onclick="buscar()">CONSULTAR</button>
-        <div id="res-txt" style="font-size: 12px; margin-top: 10px; text-align: left;"></div>
+        <div id="res-txt" style="font-size: 13px; margin-top: 10px; text-align: left; line-height: 1.4;"></div>
+        <img id="search-img" src="">
     </div>
 
     <div class="glass-card">
@@ -102,6 +107,7 @@ html_template = """
         ];
 
         function entrar() { document.getElementById('intro').style.transform = 'translateY(-100%)'; cargar(); }
+        
         function iniciarReloj() {
             clearInterval(reloj); tiempo = 15;
             reloj = setInterval(() => {
@@ -110,21 +116,36 @@ html_template = """
                 if(tiempo <= 0) { clearInterval(reloj); fallar(); }
             }, 1000);
         }
+
+        async function buscar() {
+            const t = document.getElementById('bus').value;
+            const txt = document.getElementById('res-txt');
+            const img = document.getElementById('search-img');
+            if(!t) return;
+            txt.innerText = "Buscando...";
+            try {
+                const res = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(t)}`);
+                const d = await res.json();
+                txt.innerText = d.extract || "No hay información disponible.";
+                if(d.thumbnail) {
+                    img.src = d.thumbnail.source;
+                    img.style.display = "block";
+                } else {
+                    img.style.display = "none";
+                }
+            } catch(e) { txt.innerText = "Error de conexión."; }
+        }
+
         function mostrarMeme() {
             const m = document.getElementById('meme-win');
             document.getElementById('meme-img').src = memes[Math.floor(Math.random()*memes.length)];
             m.classList.add('show');
             setTimeout(() => { m.classList.remove('show'); }, 1500);
         }
+
         function fallar() {
             document.getElementById('reto').innerText = "RETO: ¡Escribe 10 veces 'Perdí'!";
             document.getElementById('reto').style.display = "block";
-        }
-        async function buscar() {
-            const t = document.getElementById('bus').value;
-            const res = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(t)}`);
-            const d = await res.json();
-            document.getElementById('res-txt').innerText = d.extract || "No hay info.";
         }
 
         const trivia = [
@@ -180,11 +201,3 @@ html_template = """
     </script>
 </body>
 </html>
-"""
-
-@app.route('/')
-def home(): return render_template_string(html_template)
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port)
