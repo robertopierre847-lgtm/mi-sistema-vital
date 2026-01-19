@@ -3,7 +3,6 @@ from flask import Flask, render_template_string
 
 app = Flask(__name__)
 
-# Diseño Cristal Blanco y Azul - Versión Roberto Pierre
 html_template = """
 <!DOCTYPE html>
 <html lang="es">
@@ -37,7 +36,10 @@ html_template = """
         .btn-hero { 
             background: var(--azul); color: white; border: none; padding: 12px; 
             width: 100%; border-radius: 12px; font-weight: bold; margin-top: 10px; 
-            cursor: pointer; font-size: 16px;
+            cursor: pointer; font-size: 16px; transition: 0.3s;
+        }
+        #timer-box {
+            font-size: 24px; font-weight: bold; color: #dc3545; margin-bottom: 10px;
         }
         #watermark {
             position: fixed; bottom: 15px; left: 15px; background: rgba(0,123,255,0.1);
@@ -53,7 +55,7 @@ html_template = """
 <body>
     <div id="intro">
         <h1 style="font-size: 4em;">🏛️</h1>
-        <h2>SISTEMA VITAL ACTUALIZADO</h2>
+        <h2>SISTEMA VITAL CON TIEMPO</h2>
         <button class="btn-hero" style="width: 200px; background: gold; color: black;" onclick="entrar()">¡ENTRAR!</button>
     </div>
 
@@ -68,6 +70,7 @@ html_template = """
     </div>
 
     <div class="glass-card">
+        <div id="timer-box">⏱️ <span id="segundos">15</span>s</div>
         <h2 style="color: var(--azul);">Pregunta <span id="num">1</span>/30</h2>
         <p id="pregunta" style="font-weight: bold; font-size: 18px;"></p>
         <div id="opciones"></div>
@@ -75,7 +78,35 @@ html_template = """
     </div>
 
     <script>
-        function entrar() { document.getElementById('intro').style.transform = 'translateY(-100%)'; }
+        let idx = 0;
+        let tiempo = 15;
+        let reloj;
+
+        function entrar() { 
+            document.getElementById('intro').style.transform = 'translateY(-100%)'; 
+            iniciarReloj();
+        }
+
+        function iniciarReloj() {
+            clearInterval(reloj);
+            tiempo = 15;
+            document.getElementById('segundos').innerText = tiempo;
+            reloj = setInterval(() => {
+                tiempo--;
+                document.getElementById('segundos').innerText = tiempo;
+                if(tiempo <= 0) {
+                    clearInterval(reloj);
+                    fallar("¡SE ACABÓ EL TIEMPO!");
+                }
+            }, 1000);
+        }
+
+        function fallar(msg) {
+            const rTxt = document.getElementById('reto');
+            rTxt.innerText = msg + " RETO: ¡Escribe 10 veces 'Perdí' en una hoja!";
+            rTxt.style.display = "block";
+            window.speechSynthesis.speak(new SpeechSynthesisUtterance("Tiempo agotado. Haz el reto."));
+        }
 
         async function buscar() {
             const t = document.getElementById('bus').value;
@@ -88,7 +119,7 @@ html_template = """
                 txt.innerHTML = d.extract || "No se encontró nada.";
                 if(d.thumbnail) { img.src = d.thumbnail.source; img.style.display = 'block'; }
                 else { img.style.display = 'none'; }
-            } catch(e) { txt.innerHTML = "Error de red."; }
+            } catch(e) { txt.innerHTML = "Error."; }
         }
 
         const trivia = [
@@ -124,7 +155,6 @@ html_template = """
             {q: "¿Qué ciudad era la rival de Roma?", a: "Cartago", ops: ["Atenas", "Cartago", "Esparta"]}
         ];
 
-        let idx = 0;
         function cargar() {
             const d = trivia[idx];
             document.getElementById('num').innerText = idx + 1;
@@ -132,21 +162,21 @@ html_template = """
             const cont = document.getElementById('opciones');
             const rTxt = document.getElementById('reto');
             cont.innerHTML = ""; rTxt.style.display = "none";
+            iniciarReloj();
 
-            // Lógica para mezclar opciones (Aleatorio real)
             const mezcla = [...d.ops].sort(() => Math.random() - 0.5);
-
             mezcla.forEach(o => {
                 const b = document.createElement('button');
                 b.className = 'btn-hero'; b.innerText = o;
                 b.onclick = () => {
                     if(o === d.a) {
+                        clearInterval(reloj);
                         b.style.background = "#28a745";
-                        setTimeout(() => { idx++; if(idx < 30) cargar(); else alert("¡VICTORIA TOTAL ROBERTO!"); }, 800);
+                        setTimeout(() => { idx++; if(idx < 30) cargar(); else alert("¡VICTORIA!"); }, 600);
                     } else {
+                        clearInterval(reloj);
                         b.style.background = "#dc3545";
-                        rTxt.innerText = "RETO: ¡Escribe 10 veces 'Perdí' en una hoja!";
-                        rTxt.style.display = "block";
+                        fallar("¡INCORRECTO!");
                     }
                 };
                 cont.appendChild(b);
@@ -164,4 +194,4 @@ def home(): return render_template_string(html_template)
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 8080))
     app.run(host='0.0.0.0', port=port)
-        
+    
