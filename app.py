@@ -12,7 +12,12 @@ html_template = """
     <title>Imperio Romano - Roberto Pierre</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Cinzel:wght@700&display=swap" rel="stylesheet">
     <style>
-        :root { --azul: #007bff; --rojo: #dc3545; --cristal: rgba(255, 255, 255, 0.8); }
+        :root { 
+            --azul: #007bff; 
+            --rojo: #dc3545; 
+            --verde: #28a745;
+            --cristal: rgba(255, 255, 255, 0.8); 
+        }
         body {
             margin: 0; font-family: 'Poppins', sans-serif;
             background: linear-gradient(135deg, #ffffff 0%, #bbdefb 100%);
@@ -24,7 +29,7 @@ html_template = """
         #intro-capa {
             position: fixed; inset: 0; background: white; z-index: 10000;
             display: flex; flex-direction: column; justify-content: center; align-items: center;
-            cursor: pointer; text-align: center;
+            cursor: pointer; text-align: center; transition: 0.5s;
         }
         #aguila-anim { font-size: 100px; transition: 0.1s; }
         .crack {
@@ -32,15 +37,15 @@ html_template = """
             background-size: cover; opacity: 0; pointer-events: none;
         }
 
-        /* --- BUSCADOR CRISTAL CON IMÁGENES --- */
+        /* --- BUSCADOR CRISTAL --- */
         .glass-card-search {
             background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(15px);
             border-radius: 25px; padding: 20px; width: 90%; max-width: 450px;
             margin-top: 50px; border: 1px solid rgba(255,255,255,0.6); text-align: center;
         }
-        #res-img { width: 100%; border-radius: 15px; margin-top: 10px; display: none; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        #res-img { width: 100%; border-radius: 15px; margin-top: 10px; display: none; }
 
-        /* --- TRIVIA Y JUEGO --- */
+        /* --- TRIVIA --- */
         .glass-card {
             background: var(--cristal); backdrop-filter: blur(10px);
             border-radius: 30px; padding: 25px; width: 90%; max-width: 450px;
@@ -49,13 +54,14 @@ html_template = """
         .btn-hero { 
             background: var(--azul); color: white; border: none; padding: 14px; 
             width: 100%; border-radius: 15px; font-weight: bold; margin-top: 10px; cursor: pointer;
+            transition: background 0.2s;
         }
-        .reto-box { margin-top: 15px; padding: 15px; border: 3px dashed var(--rojo); color: var(--rojo); display: none; border-radius: 15px; font-weight: bold; animation: shake 0.5s; }
-        
-        @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-5px);} 75% {transform: translateX(5px);} }
+        .btn-correct { background: var(--verde) !important; }
+        .btn-wrong { background: var(--rojo) !important; }
+
+        .reto-box { margin-top: 15px; padding: 15px; border: 3px dashed var(--rojo); color: var(--rojo); display: none; border-radius: 15px; font-weight: bold; }
         
         input { width: 100%; padding: 12px; border-radius: 15px; border: 1px solid var(--azul); outline: none; margin-bottom: 10px; box-sizing: border-box; }
-        #watermark { position: fixed; bottom: 10px; left: 10px; font-size: 10px; color: var(--azul); font-weight: bold; }
     </style>
 </head>
 <body>
@@ -63,31 +69,28 @@ html_template = """
     <div id="intro-capa" onclick="picotear()">
         <div class="crack" id="vidrio"></div>
         <div id="aguila-anim">🦅</div>
-        <h2 style="font-family: 'Cinzel'; color: var(--azul);">PICA LA PANTALLA PARA ENTRAR</h2>
+        <h2 style="font-family: 'Cinzel'; color: var(--azul);">PICA LA PANTALLA</h2>
         <p id="hits-txt">Quedan: 5</p>
     </div>
 
-    <div id="watermark">SISTEMA VITAL - ROBERTO PIERRE</div>
-
     <div class="glass-card-search">
-        <h3 style="font-family: 'Cinzel'; color: var(--azul); margin: 0 0 10px 0;">Explorador Romano</h3>
-        <input type="text" id="bus" placeholder="Busca un personaje o lugar...">
-        <button class="btn-hero" onclick="buscar()">BUSCAR EN ARCHIVOS</button>
-        <img id="res-img" src="" alt="resultado">
+        <h3 style="font-family: 'Cinzel'; color: var(--azul); margin: 0;">Buscador Imperial</h3>
+        <input type="text" id="bus" placeholder="Busca algo de Roma...">
+        <button class="btn-hero" onclick="buscar()">CONSULTAR</button>
+        <img id="res-img" src="">
         <p id="res-txt" style="font-size: 13px; color: #444; margin-top: 10px;"></p>
     </div>
 
     <div class="glass-card">
         <div id="game-ui">
             <div style="color: var(--azul); font-weight: bold;">Pregunta <span id="num">1</span>/30</div>
-            <h2 id="pregunta" style="font-size: 20px; color: #333;"></h2>
+            <h2 id="pregunta" style="font-size: 18px; color: #333; margin: 15px 0;"></h2>
             <div id="opciones"></div>
-            <div id="reto" class="reto-box">❌ ¡PERDISTE! <br> Debes escribir 'Roma es eterna' 5 veces.</div>
+            <div id="reto" class="reto-box">❌ ¡ERROR! <br> Escribe 'Perdí' 5 veces.</div>
         </div>
         <div id="win-ui" style="display:none;">
-            <h1 style="color: #28a745;">🏆 ¡VICTORIA TOTAL!</h1>
-            <p>Has conquistado el conocimiento del Imperio.</p>
-            <button class="btn-hero" onclick="location.reload()">REINTENTAR</button>
+            <h1 style="color: var(--verde);">🏆 ¡VICTORIA!</h1>
+            <button class="btn-hero" onclick="location.reload()">REINICIAR</button>
         </div>
     </div>
 
@@ -96,7 +99,7 @@ html_template = """
         function picotear() {
             clicks--;
             document.getElementById('hits-txt').innerText = "Quedan: " + clicks;
-            document.getElementById('aguila-anim').style.transform = "scale(1.5) translateY(20px)";
+            document.getElementById('aguila-anim').style.transform = "scale(1.4)";
             setTimeout(() => document.getElementById('aguila-anim').style.transform = "scale(1)", 100);
             if(clicks <= 3) document.getElementById('vidrio').style.opacity = "0.5";
             if(clicks <= 0) {
@@ -117,19 +120,20 @@ html_template = """
             try {
                 const r = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`);
                 const d = await r.json();
-                txt.innerText = d.extract || "No encontrado.";
-                if(d.originalimage) {
-                    img.src = d.originalimage.source;
+                txt.innerText = d.extract || "Sin resultados.";
+                if(d.thumbnail) {
+                    img.src = d.thumbnail.source;
                     img.style.display = "block";
                 } else { img.style.display = "none"; }
-            } catch(e) { txt.innerText = "Error de red."; }
+            } catch(e) { txt.innerText = "Error de conexión."; }
         }
 
         let current = 0;
         const preguntas = [
-            {q: "¿Quién fue el primer emperador?", a: "Augusto", o: ["César", "Augusto", "Trajano"]},
-            {q: "¿Qué río cruza Roma?", a: "Tíber", o: ["Nilo", "Tíber", "Ebro"]},
-            {q: "¿En qué año cayó el Imperio de Occidente?", a: "476", o: ["1492", "476", "300"]}
+            {q: "¿Quién fue el primer emperador?", a: "Augusto", o: ["Julio César", "Augusto", "Nerón"]},
+            {q: "¿Qué animal crió a Rómulo?", a: "Loba", o: ["Loba", "Osa", "Perra"]},
+            {q: "¿Idioma de los romanos?", a: "Latín", o: ["Latín", "Griego", "Italiano"]}
+            // Agrega más aquí
         ];
 
         function cargarPregunta() {
@@ -144,16 +148,32 @@ html_template = """
             document.getElementById('reto').style.display = "none";
             const ops = document.getElementById('opciones');
             ops.innerHTML = "";
+            
             p.o.forEach(opt => {
                 const btn = document.createElement('button');
                 btn.className = "btn-hero";
                 btn.innerText = opt;
                 btn.onclick = () => {
+                    // Desactivar otros clics mientras se muestra el color
+                    const todosLosBotones = ops.querySelectorAll('button');
+                    todosLosBotones.forEach(b => b.disabled = true);
+
                     if(opt === p.a) {
-                        current++;
-                        cargarPregunta();
+                        btn.classList.add('btn-correct');
+                        setTimeout(() => {
+                            current++;
+                            cargarPregunta();
+                        }, 1000);
                     } else {
+                        btn.classList.add('btn-wrong');
                         document.getElementById('reto').style.display = "block";
+                        // Permitir reintentar después de un momento
+                        setTimeout(() => {
+                            todosLosBotones.forEach(b => {
+                                b.disabled = false;
+                                b.classList.remove('btn-wrong');
+                            });
+                        }, 2000);
                     }
                 };
                 ops.appendChild(btn);
@@ -171,4 +191,3 @@ def home():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-    
