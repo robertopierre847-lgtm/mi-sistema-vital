@@ -152,8 +152,8 @@ html_template = """
             const p = document.getElementById('player');
             const tracks = {
                 1: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-                2: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-                3: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
+                2: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3",
+                3: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-15.mp3"
             };
             p.src = tracks[track];
             p.play();
@@ -216,3 +216,13 @@ html_template = """
     </script>
 </body>
 </html>
+"""
+
+@app.route('/')
+def home():
+    return render_template_string(html_template)
+
+if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
+    
