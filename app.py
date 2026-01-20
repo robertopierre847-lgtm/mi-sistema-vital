@@ -10,149 +10,131 @@ html_template = """
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Desafío Vital - Roberto Pierre</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Cinzel:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
     <style>
         :root { 
-            --azul: #007bff; --rojo: #dc3545; --verde: #28a745; --oro: #ffd700; --cristal: rgba(255, 255, 255, 0.9); 
+            --azul: #007bff; --rojo: #dc3545; --verde: #28a745; --cristal: rgba(255, 255, 255, 0.95); 
         }
         body {
             margin: 0; font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            background: linear-gradient(135deg, #f0f8ff 0%, #bbdefb 100%);
             display: flex; flex-direction: column; align-items: center; min-height: 100vh;
         }
         .glass-card {
-            background: var(--cristal); backdrop-filter: blur(10px);
-            border-radius: 25px; padding: 20px; width: 90%; max-width: 450px;
-            margin: 15px 0; border: 1px solid white; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            background: var(--cristal); border-radius: 20px; padding: 20px; width: 90%; max-width: 450px;
+            margin: 10px 0; border: 1px solid #e0e0e0; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
         }
         .btn-hero { 
             background: var(--azul); color: white; border: none; padding: 12px; 
-            width: 100%; border-radius: 12px; font-weight: bold; margin-top: 8px; cursor: pointer;
+            width: 100%; border-radius: 10px; font-weight: bold; margin-top: 8px; cursor: pointer;
         }
-        .btn-correct { background: var(--verde) !important; }
-        .btn-wrong { background: var(--rojo) !important; }
-        .reto-box { 
-            margin-top: 15px; padding: 15px; border: 3px dashed var(--rojo); 
-            color: var(--rojo); display: none; border-radius: 15px; font-weight: bold; 
-            background: rgba(220, 53, 69, 0.1);
+        /* RANGOS */
+        .rango-badge {
+            font-weight: 900; padding: 8px 20px; border-radius: 5px; color: white;
+            text-transform: uppercase; display: inline-block; margin-bottom: 10px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5); font-size: 14px;
         }
-        input { 
-            width: 100%; padding: 12px; border-radius: 12px; border: 1px solid #ddd; 
-            outline: none; margin-bottom: 10px; box-sizing: border-box; 
-        }
-        .rango-badge { 
-            background: var(--oro); color: #333; padding: 5px 15px; 
-            border-radius: 20px; font-size: 13px; font-weight: bold; display: inline-block; margin-bottom: 10px; 
-        }
+        .bronce { background: #cd7f32; }
+        .plata { background: #c0c0c0; }
+        .oro { background: #ffd700; color: #333; }
+        .platino { background: #00ced1; }
+        .diamante { background: #b9f2ff; color: #333; }
+        .heroico { background: #ff4500; }
+        .gran-maestro { background: #8a2be2; box-shadow: 0 0 15px #8a2be2; }
+
+        #res-img { width: 100%; border-radius: 10px; margin-top: 10px; display: none; border: 2px solid var(--azul); }
+        .reto-box { margin-top: 15px; padding: 15px; border: 2px solid var(--rojo); color: var(--rojo); display: none; border-radius: 10px; font-weight: bold; background: #fff5f5; }
+        input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--azul); outline: none; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
     <div class="glass-card">
-        <h3 style="color: var(--azul); margin: 0 0 10px 0;">🔍 Buscador Vital</h3>
-        <input type="text" id="bus" placeholder="Ej: Meditación, Agua, Sueño...">
+        <h3 style="color: var(--azul); margin: 0 0 10px 0;">🔍 Buscador con Imágenes</h3>
+        <input type="text" id="bus" placeholder="Busca salud, deporte, comida...">
         <button class="btn-hero" onclick="buscar()">CONSULTAR</button>
+        <img id="res-img" src="" alt="Resultado">
         <p id="res-txt" style="font-size: 13px; color: #444; margin-top: 10px;"></p>
     </div>
 
     <div class="glass-card">
         <div id="game-ui">
-            <div id="rango" class="rango-badge">Rango: Novato</div>
-            <div style="color: var(--azul); font-weight: bold;">Nivel <span id="num">1</span>/10</div>
-            <h2 id="pregunta" style="font-size: 18px; margin: 15px 0;"></h2>
+            <div id="badge" class="rango-badge bronce">BRONCE I</div>
+            <div style="color: var(--azul); font-weight: bold; margin-bottom: 10px;">NIVEL: <span id="num">1</span>/10</div>
+            <h2 id="pregunta" style="font-size: 17px; margin: 10px 0;"></h2>
             <div id="opciones"></div>
             <div id="reto" class="reto-box"></div>
         </div>
         <div id="win-ui" style="display:none;">
-            <h1 style="color: var(--verde);">🏆 ¡MAESTRO TOTAL!</h1>
-            <p id="premio" style="font-weight: bold; color: #b8860b; font-size: 20px;"></p>
-            <button class="btn-hero" onclick="location.reload()">VOLVER A EMPEZAR</button>
+            <h1 style="color: var(--azul);">🏆 ¡GRAN MAESTRO!</h1>
+            <button class="btn-hero" onclick="location.reload()">REINICIAR</button>
         </div>
     </div>
 
-    <div class="glass-card">
-        <h4 style="margin: 0; color: var(--verde);">🎵 Música Suave</h4>
-        <audio id="player" controls style="width: 100%; margin-top: 10px;">
-            <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
-        </audio>
-    </div>
-
     <script>
-        // BUSCADOR
         async function buscar() {
             const q = document.getElementById('bus').value;
             const t = document.getElementById('res-txt');
+            const img = document.getElementById('res-img');
             if(!q) return;
             t.innerText = "Buscando...";
+            img.style.display = "none";
             try {
                 const r = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(q)}`);
                 const d = await r.json();
-                t.innerText = d.extract || "No encontré información.";
+                t.innerText = d.extract || "No hay resultados.";
+                if(d.thumbnail) {
+                    img.src = d.thumbnail.source;
+                    img.style.display = "block";
+                }
             } catch(e) { t.innerText = "Error de conexión."; }
         }
 
-        // LÓGICA DEL JUEGO
         let current = 0;
         const preguntas = [
-            {q: "¿Horas mínimas de sueño?", a: "7-8", o: ["4-5", "7-8", "10-12"], ex: "5 Sentadillas", r: "Novato"},
-            {q: "¿Principal fuente de hidratación?", a: "Agua", o: ["Refresco", "Agua", "Café"], ex: "5 Flexiones", r: "Principiante"},
-            {q: "¿Qué es procrastinar?", a: "Posponer", o: ["Ahorrar", "Posponer", "Ejercitar"], ex: "10 Saltos", r: "Aprendiz"},
-            {q: "¿Vitamina que da el sol?", a: "D", o: ["C", "D", "B12"], ex: "Estira tus brazos 15s", r: "Intermedio"},
-            {q: "¿Clave para el ahorro?", a: "Presupuesto", o: ["Gastar", "Presupuesto", "Deudas"], ex: "Toca tus pies 10 veces", r: "Avanzado"},
-            {q: "¿Ayuda a reducir el estrés?", a: "Respirar", o: ["Gritar", "Respirar", "Cafeína"], ex: "5 Abdominales", r: "Experto"},
-            {q: "¿Fruta con mucha Vitamina C?", a: "Kiwi", o: ["Plátano", "Kiwi", "Manzana"], ex: "Mueve el cuello 10s", r: "Sabio"},
-            {q: "¿Técnica Pomodoro?", a: "25 min", o: ["5 min", "25 min", "2 horas"], ex: "Haz 5 Burpees", r: "Maestro"},
-            {q: "¿Mejor para el corazón?", a: "Caminar", o: ["Fumar", "Caminar", "Estar sentado"], ex: "Salta la cuerda imaginaria 20s", r: "Leyenda"},
-            {q: "¿Base de una vida feliz?", a: "Salud y Amor", o: ["Dinero solo", "Fama", "Salud y Amor"], ex: "20 Jumping Jacks", r: "Avatar Vital"}
+            {q: "¿Qué mejora la memoria?", a: "Leer", o: ["Dormir poco", "Leer", "Ver redes"], ex: "5 Sentadillas", r: "BRONCE I", c: "bronce"},
+            {q: "¿Es vital desayunar?", a: "Sí", o: ["No", "Sí", "Dá igual"], ex: "5 Flexiones", r: "PLATA II", c: "plata"},
+            {q: "¿Litros de agua al día?", a: "2 Litros", o: ["Medio", "2 Litros", "10 Litros"], ex: "10 Saltos", r: "ORO III", c: "oro"},
+            {q: "¿Qué es procrastinar?", a: "Posponer", o: ["Avanzar", "Posponer", "Dormir"], ex: "10 Abdominales", r: "PLATINO IV", c: "platino"},
+            {q: "¿Mejor para estudiar?", a: "Hacer pausas", o: ["No parar", "Hacer pausas", "Música alta"], ex: "Estiramiento 15s", r: "DIAMANTE I", c: "diamante"},
+            {q: "¿Fruta con Vitamina C?", a: "Naranja", o: ["Pan", "Naranja", "Carne"], ex: "Equilibrio 10s", r: "DIAMANTE IV", c: "diamante"},
+            {q: "¿Ayuda a los nervios?", a: "Respirar", o: ["Correr", "Respirar", "Gritar"], ex: "5 Burpees", r: "HEROICO", c: "heroico"},
+            {q: "¿El sol nos da Vitamina...?", a: "D", o: ["A", "D", "B12"], ex: "20 Saltos", r: "HEROICO II", c: "heroico"},
+            {q: "¿Caminar es bueno?", a: "Sí, mucho", o: ["No", "Sí, mucho", "Es malo"], ex: "Plancha 15s", r: "ELITE", c: "heroico"},
+            {q: "¿Clave del éxito?", a: "Disciplina", o: ["Suerte", "Disciplina", "Esperar"], ex: "Baile de victoria", r: "GRAN MAESTRO", c: "gran-maestro"}
         ];
-
-        const premios = ["🏆 Medalla de Diamante", "🌟 Título de Sabio", "👑 Corona del Éxito", "💎 Gema de la Vitalidad"];
 
         function cargarPregunta() {
             if(current >= preguntas.length) {
                 document.getElementById('game-ui').style.display = "none";
                 document.getElementById('win-ui').style.display = "block";
-                document.getElementById('premio').innerText = premios[Math.floor(Math.random()*premios.length)];
                 return;
             }
             const p = preguntas[current];
+            const badge = document.getElementById('badge');
             document.getElementById('num').innerText = current + 1;
-            document.getElementById('rango').innerText = "Rango: " + p.r;
             document.getElementById('pregunta').innerText = p.q;
+            badge.innerText = p.r;
+            badge.className = "rango-badge " + p.c;
             document.getElementById('reto').style.display = "none";
             const ops = document.getElementById('opciones');
             ops.innerHTML = "";
-            
             p.o.forEach(opt => {
-                const btn = document.createElement('button');
-                btn.className = "btn-hero";
-                btn.innerText = opt;
-                btn.onclick = () => {
-                    if(opt === p.a) {
-                        btn.classList.add('btn-correct');
-                        setTimeout(() => { current++; cargarPregunta(); }, 1000);
-                    } else {
-                        btn.classList.add('btn-wrong');
-                        const r = document.getElementById('reto');
-                        r.innerHTML = "❌ ¡ERROR! PENITENCIA: <br>" + p.ex;
-                        r.style.display = "block";
+                const b = document.createElement('button');
+                b.className = "btn-hero"; b.innerText = opt;
+                b.onclick = () => {
+                    if(opt === p.a) { current++; cargarPregunta(); }
+                    else {
+                        document.getElementById('reto').innerHTML = "📉 BAJASTE DE RANGO <br>PENITENCIA: " + p.ex;
+                        document.getElementById('reto').style.display = "block";
                         if(current > 0) current--;
-                        setTimeout(cargarPregunta, 4000);
+                        setTimeout(cargarPregunta, 3000);
                     }
                 };
-                ops.appendChild(btn);
+                ops.appendChild(b);
             });
         }
         cargarPregunta();
     </script>
 </body>
 </html>
-"""
-
-@app.route('/')
-def home():
-    return render_template_string(html_template)
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
