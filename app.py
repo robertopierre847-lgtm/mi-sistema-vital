@@ -9,13 +9,14 @@ html_template = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Desafío Cotidiano - Roberto Pierre</title>
+    <title>Desafío Vital - Roberto Pierre</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&family=Cinzel:wght@700&display=swap" rel="stylesheet">
     <style>
         :root { 
             --azul: #007bff; 
             --rojo: #dc3545; 
             --verde: #28a745;
+            --oro: #ffd700;
             --cristal: rgba(255, 255, 255, 0.8); 
         }
         body {
@@ -63,22 +64,14 @@ html_template = """
         
         input { width: 100%; padding: 12px; border-radius: 15px; border: 1px solid var(--azul); outline: none; margin-bottom: 10px; box-sizing: border-box; }
 
-        /* --- SALA DE RELAJACIÓN --- */
-        .relaxation-card {
-            background: rgba(255, 255, 255, 0.4); backdrop-filter: blur(15px);
+        /* SALA RELAJACIÓN */
+        .relax-zone {
+            background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(10px);
             border-radius: 25px; padding: 20px; width: 90%; max-width: 450px;
-            margin: 30px 0; border: 1px solid rgba(255,255,255,0.6); text-align: center;
+            margin-bottom: 50px; text-align: center; border: 1px solid white;
         }
-        .audio-player {
-            width: 100%;
-            margin-top: 15px;
-        }
-        .zen-image {
-            width: 100%;
-            max-height: 200px;
-            object-fit: cover;
-            border-radius: 15px;
-            margin-top: 15px;
+        .rango-badge {
+            background: var(--oro); color: #333; padding: 5px 15px; border-radius: 20px; font-size: 12px; font-weight: bold; display: inline-block; margin-bottom: 10px;
         }
     </style>
 </head>
@@ -86,14 +79,14 @@ html_template = """
 
     <div id="intro-capa" onclick="picotear()">
         <div class="crack" id="vidrio"></div>
-        <div id="aguila-anim">🧠</div>
-        <h2 style="font-family: 'Cinzel'; color: var(--azul);">PICA LA PANTALLA</h2>
+        <div id="aguila-anim">🧘‍♂️</div>
+        <h2 style="font-family: 'Cinzel'; color: var(--azul);">PICA PARA EMPEZAR</h2>
         <p id="hits-txt">Quedan: 5</p>
     </div>
 
     <div class="glass-card-search">
-        <h3 style="font-family: 'Cinzel'; color: var(--azul); margin: 0;">Buscador de Vida</h3>
-        <input type="text" id="bus" placeholder="Busca un concepto cotidiano...">
+        <h3 style="font-family: 'Cinzel'; color: var(--azul); margin: 0;">Buscador Vital</h3>
+        <input type="text" id="bus" placeholder="Busca algo de la vida...">
         <button class="btn-hero" onclick="buscar()">CONSULTAR</button>
         <img id="res-img" src="">
         <p id="res-txt" style="font-size: 13px; color: #444; margin-top: 10px;"></p>
@@ -101,47 +94,40 @@ html_template = """
 
     <div class="glass-card">
         <div id="game-ui">
+            <div id="rango" class="rango-badge">Rango: Novato</div>
             <div style="color: var(--azul); font-weight: bold;">Nivel <span id="num">1</span>/10</div>
             <h2 id="pregunta" style="font-size: 18px; color: #333; margin: 15px 0;"></h2>
             <div id="opciones"></div>
-            <div id="reto" class="reto-box">❌ ¡ERROR! <br> Retrocedes un nivel...</div>
+            <div id="reto" class="reto-box"></div>
         </div>
         <div id="win-ui" style="display:none;">
-            <h1 style="color: var(--verde);">🏆 ¡MAESTRÍA LOGRADA!</h1>
-            <p>Has demostrado gran agilidad mental cotidiana.</p>
-            <button class="btn-hero" onclick="location.reload()">REINICIAR</button>
+            <h1 style="color: var(--verde);">🏆 ¡MAESTRO DE LA VIDA!</h1>
+            <p id="premio-final" style="font-weight: bold; color: var(--oro);"></p>
+            <button class="btn-hero" onclick="location.reload()">VOLVER A JUGAR</button>
         </div>
     </div>
 
-    <div class="relaxation-card">
-        <h3 style="font-family: 'Cinzel'; color: var(--verde); margin: 0;">Sala de Relajación</h3>
-        <p style="font-size: 14px; color: #555;">Tómate un descanso y relaja tu mente.</p>
-        <img src="https://images.pexels.com/photos/326055/pexels-photo-326055.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1" alt="Paisaje relajante" class="zen-image">
-        <audio controls loop class="audio-player">
+    <div class="relax-zone">
+        <h4 style="margin: 0; color: var(--verde);">Sala de Relajación</h4>
+        <p style="font-size: 12px;">Escucha música suave mientras descansas</p>
+        <audio id="player" controls style="width: 100%; margin-top: 10px;">
             <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
-            Tu navegador no soporta el elemento de audio.
         </audio>
-        <p style="font-size: 12px; color: #777;">Música suave para meditar.</p>
+        <div style="margin-top: 10px;">
+            <button onclick="cambiarMusica(1)" style="font-size: 10px; padding: 5px;">Zen 1</button>
+            <button onclick="cambiarMusica(2)" style="font-size: 10px; padding: 5px;">Zen 2</button>
+            <button onclick="cambiarMusica(3)" style="font-size: 10px; padding: 5px;">Zen 3</button>
+        </div>
     </div>
-
-    <audio id="audio-correct" src="https://www.soundjay.com/buttons/sounds/button-10.mp3" preload="auto"></audio>
-    <audio id="audio-wrong" src="https://www.soundjay.com/buttons/sounds/button-9.mp3" preload="auto"></audio>
-    <audio id="audio-win" src="https://www.soundjay.com/misc/sounds/success-sound.mp3" preload="auto"></audio>
 
     <script>
         let clicks = 5;
         function picotear() {
             clicks--;
             document.getElementById('hits-txt').innerText = "Quedan: " + clicks;
-            document.getElementById('aguila-anim').style.transform = "scale(1.4)";
-            setTimeout(() => document.getElementById('aguila-anim').style.transform = "scale(1)", 100);
-            if(clicks <= 3) document.getElementById('vidrio').style.opacity = "0.5";
             if(clicks <= 0) {
-                document.getElementById('intro-capa').style.opacity = "0";
-                setTimeout(() => {
-                    document.getElementById('intro-capa').style.display = "none";
-                    cargarPregunta();
-                }, 500);
+                document.getElementById('intro-capa').style.display = "none";
+                cargarPregunta();
             }
         }
 
@@ -151,72 +137,55 @@ html_template = """
             const img = document.getElementById('res-img');
             if(!query) return;
             txt.innerText = "Buscando...";
-            img.style.display = "none"; // Ocultar imagen anterior
-
             try {
-                // Intenta buscar en Wikipedia para texto
-                const rWiki = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`);
-                const dWiki = await rWiki.json();
-                
-                let foundImage = false;
-                if(dWiki.thumbnail && dWiki.thumbnail.source) {
-                    img.src = dWiki.thumbnail.source;
+                const r = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`);
+                const d = await r.json();
+                txt.innerText = d.extract || "Sin resultados.";
+                if(d.thumbnail) {
+                    img.src = d.thumbnail.source;
                     img.style.display = "block";
-                    foundImage = true;
-                } else {
-                    // Si Wikipedia no tiene imagen, intenta buscar una imagen genérica (ejemplo con Unsplash API)
-                    // NOTA: Para producción, necesitarías una API Key real y manejar los límites de solicitudes
-                    try {
-                        const rImage = await fetch(`https://api.unsplash.com/search/photos?query=${encodeURIComponent(query)}&client_id=YOUR_UNSPLASH_ACCESS_KEY`); // ¡CAMBIA ESTO!
-                        const dImage = await rImage.json();
-                        if (dImage.results && dImage.results.length > 0) {
-                            img.src = dImage.results[0].urls.small;
-                            img.style.display = "block";
-                            foundImage = true;
-                        }
-                    } catch (imageError) {
-                        console.error("Error buscando imagen en Unsplash:", imageError);
-                        // Fallback o mostrar un mensaje si no se encuentra imagen
-                    }
-                }
-                
-                txt.innerText = dWiki.extract || "Sin resultados. Intenta con otra búsqueda.";
-                if (!foundImage && !dWiki.thumbnail) { // Si no se encontró ninguna imagen
-                    img.style.display = "none";
-                }
-            } catch(e) { 
-                txt.innerText = "Error de conexión o al buscar la información.";
-                img.style.display = "none";
-            }
+                } else { img.style.display = "none"; }
+            } catch(e) { txt.innerText = "Error."; }
         }
 
+        function cambiarMusica(track) {
+            const p = document.getElementById('player');
+            const tracks = {
+                1: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+                2: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
+                3: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"
+            };
+            p.src = tracks[track];
+            p.play();
+        }
 
         let current = 0;
         const preguntas = [
-            {q: "Si duermes 8 horas al día, ¿qué porcentaje del año pasas durmiendo?", a: "33%", o: ["25%", "33%", "50%"]},
-            {q: "¿Cuál es el primer paso recomendado para ahorrar?", a: "Hacer un presupuesto", o: ["Hacer un presupuesto", "Gastar en ofertas", "No comer"]},
-            {q: "Para mejorar la memoria, ¿qué es más efectivo?", a: "Dormir bien", o: ["Beber café", "Dormir bien", "Mirar el móvil"]},
-            {q: "¿Qué fruta tiene más vitamina C que la naranja?", a: "Kiwi", o: ["Kiwi", "Manzana", "Pera"]},
-            {q: "Si caminas 10,000 pasos al día, ¿aprox. cuántos km son?", a: "7-8 km", o: ["2-3 km", "15 km", "7-8 km"]},
-            {q: "¿Cómo se llama el hábito de posponer tareas?", a: "Procrastinar", o: ["Procrastinar", "Relajarse", "Organizar"]},
-            {q: "¿Cuál es la forma más rápida de enfriar una bebida?", a: "Agua, hielo y sal", o: ["Congelador solo", "Nevera", "Agua, hielo y sal"]},
-            {q: "¿Qué luz ayuda a dormir mejor por la noche?", a: "Luz cálida/Tenue", o: ["Luz azul", "Luz blanca", "Luz cálida/Tenue"]},
-            {q: "¿Cuál es la base de una buena hidratación?", a: "Agua", o: ["Refrescos", "Agua", "Jugos"]},
-            {q: "¿Qué técnica divide el trabajo en bloques de 25 min?", a: "Pomodoro", o: ["Pomodoro", "Scrum", "Eisenhower"]}
+            {q: "Nivel 1: ¿Cuántas horas mínimo debe dormir un adulto?", a: "7-8 horas", o: ["4-5 horas", "7-8 horas", "10-12 horas"], ex: "Haz 5 sentadillas"},
+            {q: "Nivel 2: ¿Cuál es el gasto hormiga más común?", a: "Café diario", o: ["Alquiler", "Seguro", "Café diario"], ex: "Haz 5 flexiones"},
+            {q: "Nivel 3: ¿Qué nutriente es la principal fuente de energía?", a: "Carbohidratos", o: ["Carbohidratos", "Vitaminas", "Sal"], ex: "Toca la punta de tus pies 5 veces"},
+            {q: "Nivel 4: ¿Qué técnica ayuda a concentrarse 25 min?", a: "Pomodoro", o: ["Siesta", "Pomodoro", "Multitarea"], ex: "Salta 10 veces"},
+            {q: "Nivel 5: ¿Cuánta agua debe beberse al día aprox.?", a: "2 litros", o: ["1 litro", "2 litros", "5 litros"], ex: "Mantén el equilibrio en un pie 15 seg"},
+            {q: "Nivel 6: ¿Qué reduce el estrés de forma inmediata?", a: "Respirar profundo", o: ["Gritar", "Respirar profundo", "Comer dulce"], ex: "Haz 10 abdominales"},
+            {q: "Nivel 7: ¿Qué es mejor para la salud financiera?", a: "Ahorrar el 10%", o: ["Ahorrar el 10%", "Gastar todo", "Pedir créditos"], ex: "Estira tus brazos hacia arriba 20 seg"},
+            {q: "Nivel 8: ¿Cómo se llama posponer lo importante?", a: "Procrastinar", o: ["Dormir", "Procrastinar", "Delegar"], ex: "Haz 5 burpees"},
+            {q: "Nivel 9: ¿Qué vitamina aporta el sol?", a: "Vitamina D", o: ["Vitamina C", "Vitamina D", "Vitamina B12"], ex: "Mueve el cuello en círculos 10 veces"},
+            {q: "Nivel 10: ¿Cuál es la clave de la felicidad según estudios?", a: "Relaciones sanas", o: ["Dinero", "Fama", "Relaciones sanas"], ex: "Haz 20 saltos de tijera (Jumping Jacks)"}
         ];
 
+        const rangos = ["Novato", "Aprendiz", "Intermedio", "Avanzado", "Experto", "Sabio", "Gurú", "Maestro", "Leyenda", "Avatar Vital"];
+        const premios = ["Medalla de Bronce", "Medalla de Plata", "Trofeo de Oro", "Capa de Sabiduría", "Llave del Éxito"];
+
         function cargarPregunta() {
-            if(current < 0) current = 0; 
-            
             if(current >= preguntas.length) {
                 document.getElementById('game-ui').style.display = "none";
                 document.getElementById('win-ui').style.display = "block";
-                document.getElementById('audio-win').play(); // Sonido de victoria
+                document.getElementById('premio-final').innerText = "PREMIO: " + premios[Math.floor(Math.random()*premios.length)];
                 return;
             }
-            
             const p = preguntas[current];
             document.getElementById('num').innerText = current + 1;
+            document.getElementById('rango').innerText = "Rango: " + rangos[current];
             document.getElementById('pregunta').innerText = p.q;
             document.getElementById('reto').style.display = "none";
             const ops = document.getElementById('opciones');
@@ -227,24 +196,18 @@ html_template = """
                 btn.className = "btn-hero";
                 btn.innerText = opt;
                 btn.onclick = () => {
-                    const todosLosBotones = ops.querySelectorAll('button');
-                    todosLosBotones.forEach(b => b.disabled = true);
-
                     if(opt === p.a) {
                         btn.classList.add('btn-correct');
-                        document.getElementById('audio-correct').play(); // Sonido correcto
-                        setTimeout(() => {
-                            current++;
-                            cargarPregunta();
-                        }, 800);
+                        setTimeout(() => { current++; cargarPregunta(); }, 1000);
                     } else {
                         btn.classList.add('btn-wrong');
-                        document.getElementById('audio-wrong').play(); // Sonido incorrecto
-                        document.getElementById('reto').style.display = "block";
+                        const r = document.getElementById('reto');
+                        r.innerHTML = "⏮️ ¡ERROR! Retrocediendo... <br> PENITENCIA: " + p.ex;
+                        r.style.display = "block";
                         setTimeout(() => {
-                            current--; 
+                            if(current > 0) current--;
                             cargarPregunta();
-                        }, 1500);
+                        }, 3000);
                     }
                 };
                 ops.appendChild(btn);
@@ -253,12 +216,3 @@ html_template = """
     </script>
 </body>
 </html>
-"""
-
-@app.route('/')
-def home():
-    return render_template_string(html_template)
-
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
