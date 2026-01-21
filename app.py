@@ -34,6 +34,7 @@ html_template = """
             margin-top: 70px; padding: 20px; width: 90%; max-width: 500px;
             background: rgba(255,255,255,0.05); border-radius: 15px;
             border: 1px solid var(--azul); margin-left: auto; margin-right: auto;
+            position: relative; z-index: 10;
         }
         input { 
             width: 70%; padding: 10px; border-radius: 5px; border: 1px solid var(--azul);
@@ -41,7 +42,7 @@ html_template = """
         }
 
         /* --- MAPA E ISLAS (2) --- */
-        .mapa { height: 80vh; position: relative; display: flex; justify-content: center; align-items: center; }
+        .mapa { height: 80vh; position: relative; display: flex; justify-content: center; align-items: center; z-index: 10; }
         .isla { 
             position: absolute; width: 130px; height: 85px; background: rgba(0,0,0,0.8);
             border: 2px solid var(--azul); border-radius: 15px; display: flex;
@@ -74,9 +75,70 @@ html_template = """
         /* --- INVENTARIO --- */
         .grid-items { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .item-slot { width: 70px; height: 70px; border: 1px dashed var(--azul); display: flex; align-items: center; justify-content: center; font-size: 25px; }
+
+        /* --- 新增动画样式 --- */
+        .soldado{
+            position:absolute;
+            width:40px;
+            height:40px;
+            border-radius:50%;
+            z-index: 5;
+        }
+        #soldadoBueno{
+            background:#22c55e;
+            left:50px;
+            bottom:100px;
+        }
+        #soldadoMalo{
+            background:#ef4444;
+            right:200px;
+            bottom:120px;
+            transition:0.5s;
+        }
+
+        /* BOLA DE ENERGÍA */
+        #energia{
+            position:absolute;
+            width:20px;
+            height:20px;
+            border-radius:50%;
+            background:#38bdf8;
+            box-shadow:0 0 20px #38bdf8;
+            left:90px;
+            bottom:120px;
+            z-index: 5;
+        }
+
+        /* COLISEO SIMBÓLICO */
+        #coliseo{
+            position:absolute;
+            right:60px;
+            bottom:50px;
+            display:grid;
+            grid-template-columns:repeat(4,30px);
+            gap:5px;
+            z-index: 5;
+        }
+        .bloque{
+            width:30px;
+            height:30px;
+            background:#facc15;
+            transition:0.6s;
+        }
     </style>
 </head>
 <body>
+
+    <!-- 新增动画元素 -->
+    <div id="soldadoBueno" class="soldado"></div>
+    <div id="soldadoMalo" class="soldado"></div>
+    <div id="energia"></div>
+    <div id="coliseo">
+        <div class="bloque"></div><div class="bloque"></div>
+        <div class="bloque"></div><div class="bloque"></div>
+        <div class="bloque"></div><div class="bloque"></div>
+        <div class="bloque"></div><div class="bloque"></div>
+    </div>
 
     <div class="hud">
         <div>💰 <span id="m-val">500</span></div>
@@ -213,16 +275,41 @@ html_template = """
             document.getElementById('m-val').innerText = monedas;
             document.getElementById('clase-val').innerText = clases[claseIdx];
         }
-    </script>
-</body>
-</html>
-"""
 
-@app.route('/')
-def home():
-    return render_template_string(html_template)
+        // --- 新增动画脚本 ---
+        let energia = document.getElementById("energia");
+        let enemigo = document.getElementById("soldadoMalo");
+        let bloques = document.querySelectorAll(".bloque");
 
-if __name__ == '__main__':
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port)
-    
+        let x = 90;
+        let y = 120;
+        let fase = 1;
+
+        let animacion = setInterval(()=>{
+            if(fase === 1){
+                x += 6;
+                y += 2;
+                energia.style.left = x+"px";
+                energia.style.bottom = y+"px";
+
+                if(x > window.innerWidth - 300){
+                    fase = 2;
+                    enemigo.style.opacity = "0.3";
+                }
+            }
+
+            if(fase === 2){
+                x += 4;
+                y -= 2;
+                energia.style.left = x+"px";
+                energia.style.bottom = y+"px";
+
+                if(x > window.innerWidth - 120){
+                    fase = 3;
+                    bloques.forEach(b=>{
+                        b.style.transform="scale(0)";
+                        b.style.opacity="0";
+                    });
+                    energia.style.transform="scale(3)";
+
+               
