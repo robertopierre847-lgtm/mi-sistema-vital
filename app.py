@@ -1,187 +1,221 @@
-from flask import Flask, request, render_template_string, jsonify
-import requests, random, os
+from flask import Flask, request, render_template_string
+import json, os, random
 
 app = Flask(__name__)
 
-# =========================
-# 🌍 BUSCADOR WIKIPEDIA
-# =========================
-def buscar_wiki(q):
-    if not q:
-        return None
-    url = "https://es.wikipedia.org/api/rest_v1/page/summary/" + q
-    r = requests.get(url, timeout=5)
-    if r.status_code != 200:
-        return None
-    d = r.json()
-    return {
-        "titulo": d.get("title", ""),
-        "texto": d.get("extract", "No se encontró información."),
-        "img": d.get("thumbnail", {}).get("source", "")
-    }
+# ================== MEMORIA ==================
+ARCHIVO = "mentiscope_memoria.json"
 
-# =========================
-# 🧩 JUEGO DE DECISIONES
-# =========================
-niveles = [
-    {
-        "pregunta": "Ves a alguien triste en la escuela ¿qué haces?",
-        "opciones": {
-            "A": ("Lo ignoras", -1),
-            "B": ("Lo escuchas", 2),
-            "C": ("Pides ayuda a un adulto", 1)
-        }
-    },
-    {
-        "pregunta": "Tienes un examen y no estudiaste",
-        "opciones": {
-            "A": ("Copiar", -2),
-            "B": ("Ser honesto", 2),
-            "C": ("Intentar lo que sepas", 1)
-        }
-    }
+if os.path.exists(ARCHIVO):
+    with open(ARCHIVO, "r", encoding="utf-8") as f:
+        historial = json.load(f)
+else:
+    historial = []
+
+# ================== LÓGICA 474 ==================
+PALABRAS_SOSPECHOSAS = [
+    "creo", "tal vez", "no recuerdo", "más o menos",
+    "supongo", "quizás", "nunca", "siempre"
 ]
 
-estado_juego = {"nivel": 0, "puntos": 0}
+PREGUNTAS_SEGUIMIENTO = [
+    "¿Puedes dar más detalles?",
+    "¿Cuándo ocurrió exactamente?",
+    "¿Alguien más puede confirmarlo?",
+    "¿Por qué estás seguro de eso?",
+    "¿Cambiarías algo de tu respuesta?"
+]
 
-def opinion_ia(p):
-    if p >= 3:
-        return "Buena decisión 👍 estás actuando con lógica."
-    elif p >= 1:
-        return "Vas bien, pero piensa mejor 🤔"
+def analizar_frase(texto):
+    texto_l = texto.lower()
+    puntos = 50
+
+    if len(texto) < 15:
+        puntos -= 15
+    if len(texto) > 120:
+        puntos -= 10
+
+    sospechas = [p for p in PALABRAS_SOSPECHOSAS if p in texto_l]
+    puntos -= len(sospechas) * 5
+
+    if "porque" in texto_l or "ya que" in texto_l:
+        puntos += 10
+
+    if puntos >= 70:
+        estado = "🟢 PROBABLEMENTE VERDAD"
+        mood = "calm"
+    elif puntos >= 45:
+        estado = "🟡 DUDOSO"
+        mood = "think"
     else:
-        return "Cuidado, esas decisiones no ayudan ⚠️"
+        estado = "🔴 PROBABLEMENTE MENTIRA"
+        mood = "alert"
 
-# =========================
-# 🌐 RUTAS
-# =========================
-@app.route("/")
+    return {
+        "puntos": max(0, min(100, puntos)),
+        "estado": estado,
+        "sospechas": sospechas,
+        "pregunta": random.choice(PREGUNTAS_SEGUIMIENTO),
+        "mood": mood
+    }
+
+# ================== RUTA ==================
+@app.route("/", methods=["GET", "POST"])
 def inicio():
-    return render_template_string(HTML)
+    resultado = None
 
-@app.route("/buscar")
-def buscar():
-    q = request.args.get("q", "")
-    r = buscar_wiki(q)
-    return jsonify(r if r else {})
+    if request.method == "POST":
+        frase = request.form.get("frase", "").strip()
+        if frase:
+            resultado = analizar_frase(frase)
+            historial.append({
+                "frase": frase,
+                "resultado": resultado["estado"],
+                "puntos": resultado["puntos"]
+            })
+            with open(ARCHIVO, "w", encoding="utf-8") as f:
+                json.dump(historial, f, ensure_ascii=False, indent=2)
 
-@app.route("/juego", methods=["POST"])
-def juego():
-    data = request.get_json()
-    op = data.get("op")
-    nivel = niveles[estado_juego["nivel"]]
+    return render_template_string(HTML, resultado=resultado, historial=historial[-5:])
 
-    if op not in nivel["opciones"]:
-        return jsonify({"error": "Opción inválida"})
-
-    estado_juego["puntos"] += nivel["opciones"][op][1]
-    estado_juego["nivel"] = (estado_juego["nivel"] + 1) % len(niveles)
-
-    return jsonify({
-        "puntos": estado_juego["puntos"],
-        "opinion": opinion_ia(estado_juego["puntos"]),
-        "siguiente": niveles[estado_juego["nivel"]]
-    })
-
-# =========================
-# 🎨 HTML
-# =========================
+# ================== HTML ==================
 HTML = """
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MENTISCOPE 474</title>
+
 <style>
 body{
-background:linear-gradient(135deg,#e3f2fd,#ffffff);
-font-family:Arial;
-padding:15px;
+    background: linear-gradient(135deg,#e6f4ff,#ffffff);
+    font-family: Arial;
+    padding: 20px;
 }
+
 .card{
-background:rgba(255,255,255,0.6);
-backdrop-filter:blur(10px);
-border-radius:15px;
-padding:15px;
-margin-bottom:15px;
+    background: rgba(255,255,255,0.85);
+    border-radius: 18px;
+    padding: 20px;
+    max-width: 520px;
+    margin: auto;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.12);
+    animation: fade 0.6s ease;
 }
+
+h1{
+    text-align:center;
+    color:#0077ff;
+}
+
+textarea{
+    width:100%;
+    padding:12px;
+    border-radius:12px;
+    border:1px solid #aac;
+    resize:none;
+}
+
 button{
-background:#2196f3;
-color:white;
-border:none;
-padding:10px;
-border-radius:10px;
-margin:5px;
+    width:100%;
+    padding:14px;
+    margin-top:10px;
+    border:none;
+    border-radius:14px;
+    background:#0077ff;
+    color:white;
+    font-size:16px;
 }
-img{max-width:100%;border-radius:10px;}
+
+.res{
+    margin-top:15px;
+    padding:14px;
+    border-radius:14px;
+    background:#f1f8ff;
+    animation: slide 0.5s ease;
+}
+
+.bar{
+    height:12px;
+    background:#ddd;
+    border-radius:10px;
+    overflow:hidden;
+    margin:8px 0;
+}
+.fill{
+    height:100%;
+    background:linear-gradient(90deg,#00c6ff,#0072ff);
+    width:0%;
+    transition:width 0.8s ease;
+}
+
+.inspector{
+    text-align:center;
+    font-size:60px;
+    margin-bottom:10px;
+}
+
+@keyframes fade{
+    from{opacity:0;transform:scale(0.95)}
+    to{opacity:1;transform:scale(1)}
+}
+@keyframes slide{
+    from{opacity:0;transform:translateY(10px)}
+    to{opacity:1;transform:translateY(0)}
+}
 </style>
 </head>
+
 <body>
 
-<h2>🔍 Buscador Wikipedia</h2>
 <div class="card">
-<input id="q"><button onclick="buscar()">Buscar</button>
-<h3 id="t"></h3>
-<img id="img">
-<p id="txt"></p>
+<h1>🧠 MENTISCOPE 474</h1>
+
+<form method="post">
+<textarea name="frase" rows="4" placeholder="Escribe tu afirmación..."></textarea>
+<button>Analizar</button>
+</form>
+
+{% if resultado %}
+<div class="res">
+
+<div class="inspector">
+{% if resultado.mood == "calm" %}🕵️‍♂️
+{% elif resultado.mood == "think" %}🤔
+{% else %}🚨{% endif %}
 </div>
 
-<h2>🧩 Juego de Decisiones</h2>
-<div class="card">
-<p id="preg"></p>
-<div id="ops"></div>
-<p id="res"></p>
+<b>{{resultado.estado}}</b><br>
+
+<div class="bar">
+  <div class="fill" style="width:{{resultado.puntos}}%"></div>
 </div>
 
-<script>
-function buscar(){
-fetch("/buscar?q="+q.value)
-.then(r=>r.json())
-.then(d=>{
-t.innerText=d.titulo || "";
-txt.innerText=d.texto || "";
-img.src=d.img || "";
-});
-}
+<b>Puntuación lógica:</b> {{resultado.puntos}} / 100<br>
 
-function cargarJuego(d){
-preg.innerText=d.pregunta;
-ops.innerHTML="";
-for(let k in d.opciones){
-let b=document.createElement("button");
-b.innerText=k+" - "+d.opciones[k][0];
-b.onclick=()=>jugar(k);
-ops.appendChild(b);
-}
-}
+{% if resultado.sospechas %}
+<b>Palabras sospechosas:</b> {{resultado.sospechas}}<br>
+{% endif %}
 
-function jugar(o){
-fetch("/juego",{
-method:"POST",
-headers:{'Content-Type':'application/json'},
-body:JSON.stringify({op:o})
-})
-.then(r=>r.json())
-.then(d=>{
-res.innerText=d.opinion+" | Puntos: "+d.puntos;
-cargarJuego(d.siguiente);
-});
-}
+<b>Pregunta:</b> {{resultado.pregunta}}
 
-// iniciar juego
-fetch("/juego",{
-method:"POST",
-headers:{'Content-Type':'application/json'},
-body:JSON.stringify({op:"B"})
-}).then(r=>r.json()).then(d=>cargarJuego(d.siguiente));
-</script>
+</div>
+{% endif %}
 
+<hr>
+<small>Últimos análisis:</small>
+<ul>
+{% for h in historial %}
+<li>{{h.frase}} → {{h.resultado}}</li>
+{% endfor %}
+</ul>
+
+</div>
 </body>
 </html>
 """
 
-# =========================
-# 🚀 RENDER (MUY IMPORTANTE)
-# =========================
+# ================== RUN ==================
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
