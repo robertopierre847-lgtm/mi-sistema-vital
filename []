@@ -1,0 +1,3 @@
+if not os.path.exists(ARCHIVO):
+    with open(ARCHIVO, "w", encoding="utf-8") as f:
+        f.write("[]")
