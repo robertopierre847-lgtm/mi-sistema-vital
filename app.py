@@ -3,64 +3,71 @@ import os, json
 
 app = Flask(__name__)
 
-# ================== ESTADO ==================
-ARCHIVO = "mentiscope_save.json"
+# ================== ARCHIVO ==================
+ARCHIVO = "estado.json"
 
-if os.path.exists(ARCHIVO):
-    with open(ARCHIVO, "r", encoding="utf-8") as f:
-        estado = json.load(f)
-else:
-    estado = {
-        "nivel": 1,
-        "vida_gigante": 300,
-        "finalizado": False
-    }
+# ================== CARGAR ESTADO ==================
+def cargar_estado():
+    try:
+        with open(ARCHIVO, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except:
+        return {
+            "nivel": 1,
+            "vida_gigante": 300,
+            "finalizado": False
+        }
 
-def guardar():
-    with open(ARCHIVO, "w", encoding="utf-8") as f:
-        json.dump(estado, f)
+# ================== GUARDAR ESTADO ==================
+def guardar_estado(estado):
+    try:
+        with open(ARCHIVO, "w", encoding="utf-8") as f:
+            json.dump(estado, f)
+    except:
+        pass  # evita error 500
+
+estado = cargar_estado()
 
 # ================== PREGUNTAS ==================
 preguntas = []
 for i in range(1, 31):
     preguntas.append({
-        "p": f"Nivel {i}: ¿Qué decisión demuestra mayor control emocional?",
+        "p": f"Nivel {i}: ¿Qué acción demuestra mayor inteligencia emocional?",
         "o": [
             "Pensar antes de actuar",
-            "Responder con rabia",
-            "Echar la culpa",
+            "Gritar",
+            "Culpar a otros",
             "Ignorar el problema"
         ],
         "c": 0
     })
 
-# ================== RANKING ==================
-def calcular_rango():
-    vida = estado["vida_gigante"]
+# ================== RANGO ==================
+def calcular_rango(vida):
     if vida <= 0:
-        return "🟢 RANGO S – Lógica excelente"
-    elif vida <= 50:
-        return "🔵 RANGO A – Muy buen razonamiento"
-    elif vida <= 120:
-        return "🟡 RANGO B – Buen trabajo"
-    elif vida <= 200:
-        return "🟠 RANGO C – Respuestas impulsivas"
+        return "🟢 RANGO S – Mente lógica superior"
+    elif vida <= 60:
+        return "🔵 RANGO A – Muy buen criterio"
+    elif vida <= 140:
+        return "🟡 RANGO B – Buen razonamiento"
+    elif vida <= 220:
+        return "🟠 RANGO C – Impulsivo"
     else:
-        return "🔴 RANGO D – Necesitas reflexionar más"
+        return "🔴 RANGO D – Necesita mejorar"
 
 # ================== API ==================
 @app.route("/estado")
-def get_estado():
+def api_estado():
     return jsonify(estado)
 
 @app.route("/pregunta")
-def get_pregunta():
+def api_pregunta():
     return jsonify(preguntas[estado["nivel"] - 1])
 
 @app.route("/responder", methods=["POST"])
 def responder():
     data = request.json
-    correcta = data["correcta"]
+    correcta = data.get("correcta", False)
 
     if estado["nivel"] < 30:
         if correcta:
@@ -68,21 +75,21 @@ def responder():
     else:
         # JEFE FINAL
         if correcta:
-            estado["vida_gigante"] -= 30
+            estado["vida_gigante"] -= 25
         else:
-            estado["vida_gigante"] += 20
+            estado["vida_gigante"] += 15
 
         estado["vida_gigante"] = max(0, min(300, estado["vida_gigante"]))
 
         if estado["vida_gigante"] == 0:
             estado["finalizado"] = True
 
-    guardar()
+    guardar_estado(estado)
     return jsonify(estado)
 
 @app.route("/rango")
 def rango():
-    return jsonify({"rango": calcular_rango()})
+    return jsonify({"rango": calcular_rango(estado["vida_gigante"])})
 
 # ================== HTML ==================
 HTML = """
@@ -90,23 +97,23 @@ HTML = """
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MENTISCOPE 474</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
 body{
-background:linear-gradient(135deg,#eef6ff,#ffffff);
+background:linear-gradient(135deg,#eaf4ff,#ffffff);
 font-family:Arial;
 padding:20px;
 }
 .card{
-max-width:500px;
+max-width:520px;
 margin:auto;
 background:white;
-border-radius:18px;
 padding:20px;
-box-shadow:0 15px 35px rgba(0,0,0,.15);
-animation:fade .8s;
+border-radius:18px;
+box-shadow:0 15px 30px rgba(0,0,0,.15);
+animation:fade .6s;
 }
 @keyframes fade{
 from{opacity:0;transform:translateY(20px);}
@@ -118,21 +125,12 @@ padding:12px;
 margin:6px 0;
 border:none;
 border-radius:12px;
-background:#0066ff;
+background:#0077ff;
 color:white;
 font-size:16px;
 }
-#gigante{
-font-size:60px;
-text-align:center;
-animation:shake .8s infinite alternate;
-}
-@keyframes shake{
-from{transform:translateX(-3px);}
-to{transform:translateX(3px);}
-}
 .bar{
-height:18px;
+height:16px;
 background:#ddd;
 border-radius:10px;
 overflow:hidden;
@@ -142,11 +140,15 @@ height:100%;
 background:#ff4444;
 transition:.4s;
 }
-.rango{
+#gigante{
+font-size:64px;
+text-align:center;
+}
+.result{
 margin-top:15px;
 padding:12px;
-border-radius:10px;
 background:#f1f7ff;
+border-radius:12px;
 font-weight:bold;
 text-align:center;
 }
@@ -187,10 +189,11 @@ vida.style.width=(e.vida_gigante/300*100)+"%";
 }
 if(e.finalizado){
 fetch("/rango").then(r=>r.json()).then(d=>{
-resultado.innerHTML='<div class="rango">'+d.rango+'</div>';
+resultado.innerHTML='<div class="result">'+d.rango+'</div>';
 });
 }
 });
+
 fetch("/pregunta").then(r=>r.json()).then(p=>{
 pregunta.innerText=p.p;
 ops.innerHTML="";
