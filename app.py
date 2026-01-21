@@ -1,158 +1,126 @@
-<script>
-/* ====== ESTADO DEL JUEGO ====== */
-let monedas = 500;
-let nivel = 1;
-let xp = 0;
-let xpMax = 100;
+from flask import Flask, request, render_template_string
+import requests
 
-let claseIdx = 0;
-let clases = ["CLASE E", "CLASE D", "CLASE C", "CLASE B", "CLASE S"];
+app = Flask(__name__)
 
-let hpJefeMax = 1000;
-let hpJefe = hpJefeMax;
+HTML = """
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Buscador Inteligente</title>
 
-let armaNivel = 1;
-let entrenando = false;
-
-/* ====== UI ====== */
-function actualizarHud() {
-    document.getElementById("m-val").innerText = monedas;
-    document.getElementById("lvl-val").innerText = nivel;
-    document.getElementById("clase-val").innerText = clases[claseIdx];
+<style>
+body{
+    margin:0;
+    font-family:Arial;
+    background:linear-gradient(135deg,#e6f2ff,#ffffff);
+    color:#003366;
 }
 
-/* ====== PANTALLAS ====== */
-function abrir(id) {
-    document.getElementById(id).style.display = "flex";
-}
-function cerrar() {
-    let p = document.getElementsByClassName("pantalla");
-    for (let i = 0; i < p.length; i++) {
-        p[i].style.display = "none";
-    }
-}
-
-/* ====== ENTRENAMIENTO ====== */
-function ganar(cantidad) {
-    if (entrenando) {
-        alert("⏳ Espera un momento...");
-        return;
-    }
-    entrenando = true;
-
-    setTimeout(function () {
-        entrenando = false;
-    }, 8000);
-
-    if (cantidad > 0) {
-        monedas += 100;
-        ganarXP(40);
-        alert("💪 Buen hábito. +100 monedas");
-    } else {
-        monedas -= 50;
-        if (monedas < 0) monedas = 0;
-        alert("❌ Mal hábito. Pierdes monedas");
-    }
-    actualizarHud();
+.contenedor{
+    max-width:900px;
+    margin:40px auto;
+    padding:30px;
+    background:rgba(255,255,255,0.7);
+    backdrop-filter:blur(12px);
+    border-radius:20px;
+    box-shadow:0 0 30px rgba(0,0,0,0.1);
 }
 
-/* ====== EXPERIENCIA ====== */
-function ganarXP(cant) {
-    xp += cant;
-    if (xp >= xpMax) {
-        xp = 0;
-        nivel++;
-        xpMax += 50;
-        alert("⬆️ SUBISTE A NIVEL " + nivel);
-    }
+h1{text-align:center}
+
+input{
+    width:100%;
+    padding:15px;
+    border-radius:15px;
+    border:1px solid #99ccff;
+    font-size:16px;
 }
 
-/* ====== TIENDA ====== */
-function comprarItem(icono, nombre, precio) {
-    if (monedas < precio) {
-        alert("💰 No tienes suficientes monedas");
-        return;
-    }
-    monedas -= precio;
-    armaNivel++;
-    document.getElementById("slot-especial").innerText = icono;
-    document.getElementById("btn-especial").style.display = "inline-block";
-    alert(nombre + " adquirido");
-    actualizarHud();
+button{
+    margin-top:15px;
+    padding:15px;
+    width:100%;
+    border:none;
+    border-radius:15px;
+    background:#3399ff;
+    color:white;
+    font-size:16px;
+    cursor:pointer;
 }
 
-/* ====== SUBIR CLASE ====== */
-function subirClase() {
-    if (monedas >= 1000 && claseIdx < clases.length - 1) {
-        monedas -= 1000;
-        claseIdx++;
-        alert("🏅 Ascendiste a " + clases[claseIdx]);
-    } else {
-        alert("❌ No cumples requisitos");
-    }
-    actualizarHud();
+.resultado{
+    margin-top:25px;
+    background:white;
+    padding:20px;
+    border-radius:15px;
 }
 
-/* ====== COMBATE CONTRA JEFE ====== */
-function atacarJefe(extra) {
-    if (!extra) extra = 0;
-
-    let danioJugador = Math.floor((20 * armaNivel) + extra);
-    let danioJefe = Math.floor(Math.random() * 40);
-
-    hpJefe -= danioJugador;
-    monedas -= danioJefe;
-
-    if (monedas < 0) monedas = 0;
-    if (hpJefe < 0) hpJefe = 0;
-
-    document.getElementById("jefe-hp-fill").style.width =
-        (hpJefe / hpJefeMax * 100) + "%";
-
-    actualizarHud();
-
-    if (hpJefe === 0) {
-        alert("🏆 JEFE DERROTADO\nEres un verdadero Cazador");
-        ganarXP(200);
-        cerrar();
-        hpJefe = hpJefeMax;
-    }
-
-    if (monedas === 0) {
-        alert("💀 Has sido derrotado\nRegresas a la base");
-        cerrar();
-        hpJefe = hpJefeMax;
-    }
+img{
+    max-width:100%;
+    border-radius:15px;
+    margin-bottom:15px;
 }
 
-/* ====== BUSCADOR SEGURO ====== */
-function buscar() {
-    let q = document.getElementById("bus-input").value;
-    let res = document.getElementById("wiki-res");
-    if (q.length < 2) return;
-    res.innerText = "Buscando...";
-
-    fetch("https://es.wikipedia.org/api/rest_v1/page/summary/" + q)
-        .then(r => r.json())
-        .then(d => {
-            res.innerText = d.extract || "No encontrado";
-        })
-        .catch(() => {
-            res.innerText = "Error de conexión";
-        });
+.relax{
+    margin-top:30px;
+    text-align:center;
+    opacity:0.8;
 }
+</style>
 
-/* ====== ANIMACIÓN SIMPLE ====== */
-let energia = document.getElementById("energia");
-let x = 90;
-let y = 120;
+</head>
+<body>
 
-setInterval(function () {
-    x += 3;
-    if (x > window.innerWidth - 100) x = 90;
-    energia.style.left = x + "px";
-}, 50);
+<div class="contenedor">
+    <h1>🔍 Buscador Inteligente</h1>
 
-/* ====== INIT ====== */
-actualizarHud();
-</script>
+    <form method="post">
+        <input name="busqueda" placeholder="Busca ciencia, historia, animales...">
+        <button>Buscar</button>
+    </form>
+
+    {% if texto %}
+    <div class="resultado">
+        {% if imagen %}
+            <img src="{{imagen}}">
+        {% endif %}
+        <p>{{texto}}</p>
+    </div>
+    {% endif %}
+
+    <div class="relax">
+        🌿 Respira  
+        💙 Mantén la calma  
+        🌊 La información fluye
+    </div>
+</div>
+
+</body>
+</html>
+"""
+
+@app.route("/", methods=["GET","POST"])
+def inicio():
+    texto = ""
+    imagen = ""
+
+    if request.method == "POST":
+        q = request.form.get("busqueda","").strip()
+        if q:
+            url = "https://es.wikipedia.org/api/rest_v1/page/summary/" + q.replace(" ","_")
+            r = requests.get(url)
+
+            if r.status_code == 200:
+                data = r.json()
+                texto = data.get("extract","No encontré información.")
+                if "thumbnail" in data:
+                    imagen = data["thumbnail"].get("source","")
+            else:
+                texto = "No se pudo encontrar información 😌"
+
+    return render_template_string(HTML, texto=texto, imagen=imagen)
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
