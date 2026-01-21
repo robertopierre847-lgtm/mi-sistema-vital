@@ -1,218 +1,170 @@
-from flask import Flask, render_template_string
+from flask import Flask, render_template_string, request
+import requests
+import json
+import os
 
 app = Flask(__name__)
 
+ARCHIVO = "datos.json"
+
+if not os.path.exists(ARCHIVO):
+    with open(ARCHIVO, "w") as f:
+        json.dump({
+            "puntos": 0,
+            "nivel": 1,
+            "indice": 0
+        }, f)
+
+def cargar():
+    return json.load(open(ARCHIVO))
+
+def guardar(data):
+    json.dump(data, open(ARCHIVO, "w"))
+
+# ===== PREGUNTAS DEL JUEGO =====
+preguntas = [
+    {
+        "p": "Ves a alguien triste en la calle. ¿Qué haces?",
+        "o": {
+            "Ignorar": 0,
+            "Pensar cómo ayudar": 10,
+            "Burlarte": -10
+        }
+    },
+    {
+        "p": "Cometes un error importante. ¿Reaccionas cómo?",
+        "o": {
+            "Aceptar y aprender": 15,
+            "Culpar a otros": -5,
+            "Rendirme": -10
+        }
+    },
+    {
+        "p": "Tienes tiempo libre. ¿Qué eliges?",
+        "o": {
+            "Aprender algo nuevo": 20,
+            "Dormir todo el día": 5,
+            "Perder tiempo sin pensar": -5
+        }
+    }
+]
+
+@app.route("/", methods=["GET", "POST"])
+def inicio():
+    datos = cargar()
+    resultado = ""
+    imagen = ""
+
+    if request.method == "POST":
+        # BUSCADOR WIKIPEDIA
+        if "buscar" in request.form:
+            q = request.form.get("buscar")
+            url = f"https://es.wikipedia.org/api/rest_v1/page/summary/{q}"
+            r = requests.get(url)
+            if r.status_code == 200:
+                d = r.json()
+                resultado = d.get("extract", "No se encontró información.")
+                if "thumbnail" in d:
+                    imagen = d["thumbnail"]["source"]
+            else:
+                resultado = "No se pudo buscar."
+
+        # JUEGO
+        if "opcion" in request.form:
+            idx = datos["indice"]
+            if idx < len(preguntas):
+                puntos = preguntas[idx]["o"].get(request.form["opcion"], 0)
+                datos["puntos"] += puntos
+                datos["indice"] += 1
+                if datos["puntos"] >= datos["nivel"] * 30:
+                    datos["nivel"] += 1
+                guardar(datos)
+
+    return render_template_string(HTML,
+        datos=datos,
+        preguntas=preguntas,
+        resultado=resultado,
+        imagen=imagen
+    )
+
 HTML = """
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Buscador Vital</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IA Mental</title>
 <style>
-*{box-sizing:border-box}
 body{
-    margin:0;
-    min-height:100vh;
-    background:linear-gradient(135deg,#e0f2ff,#f7fbff);
-    font-family:system-ui, sans-serif;
-    display:flex;
-    justify-content:center;
-    align-items:center;
+    font-family: Arial;
+    background: linear-gradient(135deg,#eaf6ff,#ffffff);
+    margin:0;padding:10px;
 }
-
-.app{
-    width:95%;
-    max-width:420px;
-    padding:20px;
-    border-radius:22px;
-    background:rgba(255,255,255,0.45);
-    backdrop-filter:blur(18px);
-    box-shadow:0 20px 40px rgba(0,100,255,.15);
-    animation:fadeIn .8s ease;
-}
-
-@keyframes fadeIn{
-    from{opacity:0;transform:translateY(20px)}
-    to{opacity:1;transform:none}
-}
-
-h1{
-    text-align:center;
-    color:#1e88e5;
-    margin-bottom:10px;
-}
-
-p.relax{
-    text-align:center;
-    font-size:13px;
-    color:#555;
+.card{
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(8px);
+    border-radius:15px;
+    padding:15px;
     margin-bottom:15px;
+    box-shadow:0 4px 10px rgba(0,0,0,0.1);
 }
-
-.search-box{
-    display:flex;
-    gap:8px;
-}
-
-input{
-    flex:1;
-    padding:12px;
-    border-radius:14px;
-    border:1px solid #cfe7ff;
-    background:rgba(255,255,255,.7);
+button{
+    width:100%;
+    padding:10px;
+    margin-top:8px;
+    border:none;
+    border-radius:10px;
+    background:#2196f3;
+    color:white;
     font-size:16px;
 }
-
-button{
-    padding:12px 16px;
-    border:none;
-    border-radius:14px;
-    background:#1e88e5;
-    color:white;
-    font-size:15px;
-    cursor:pointer;
-    transition:.2s;
-}
-button:active{transform:scale(.95)}
-
-#sugerencias{
-    margin-top:6px;
-}
-
-.sug{
-    padding:8px;
+input{
+    width:100%;
+    padding:10px;
     border-radius:10px;
-    background:rgba(30,136,229,.08);
-    margin-bottom:4px;
-    cursor:pointer;
-    animation:fadeIn .3s ease;
+    border:1px solid #ccc;
 }
-
-.resultado{
-    margin-top:15px;
-    font-size:14px;
-    color:#333;
-    line-height:1.5;
-    animation:fadeIn .4s ease;
-}
-
 img{
     width:100%;
-    border-radius:14px;
-    margin-top:10px;
-}
-
-/* mini juego */
-.juego{
-    margin-top:20px;
-    padding:15px;
-    border-radius:16px;
-    background:rgba(30,136,229,.08);
-    text-align:center;
-}
-
-.word{
-    font-weight:bold;
-    font-size:18px;
-    color:#1e88e5;
-}
-
-.puntos{
-    margin-top:6px;
-    font-size:14px;
+    border-radius:10px;
 }
 </style>
 </head>
-
 <body>
-<div class="app">
 
-<h1>🌤️ Buscador Vital</h1>
-<p class="relax">Respira profundo. Aprende algo nuevo.</p>
-
-<div class="search-box">
-<input id="q" placeholder="Buscar en Wikipedia...">
-<button onclick="buscar()">Buscar</button>
+<div class="card">
+<h2>🔎 Buscador mental (Wikipedia)</h2>
+<form method="post">
+<input name="buscar" placeholder="Buscar algo...">
+<button>Buscar</button>
+</form>
+{% if resultado %}
+<p>{{resultado}}</p>
+{% if imagen %}
+<img src="{{imagen}}">
+{% endif %}
+{% endif %}
 </div>
 
-<div id="sugerencias"></div>
-<div id="res" class="resultado"></div>
+<div class="card">
+<h2>🧠 Juego de decisiones</h2>
+<p>Nivel: {{datos.nivel}} | Puntos: {{datos.puntos}}</p>
 
-<div class="juego">
-<p>🧠 Juego de palabras</p>
-<div class="word" id="palabra"></div>
-<input id="resp" placeholder="Escribe la palabra">
-<button onclick="verificar()">Probar</button>
-<div class="puntos">Puntos: <span id="pts">0</span></div>
+{% if datos.indice < preguntas|length %}
+<p><b>{{preguntas[datos.indice].p}}</b></p>
+<form method="post">
+{% for op in preguntas[datos.indice].o.keys() %}
+<button name="opcion" value="{{op}}">{{op}}</button>
+{% endfor %}
+</form>
+{% else %}
+<p>🎉 Juego terminado</p>
+<p>Recompensa: mejor criterio y autocontrol</p>
+{% endif %}
 </div>
-
-</div>
-
-<script>
-let puntos = 0;
-const palabras = ["calma","mente","respirar","paz","energia","equilibrio"];
-
-function nuevaPalabra(){
-    document.getElementById("palabra").innerText =
-        palabras[Math.floor(Math.random()*palabras.length)];
-}
-nuevaPalabra();
-
-function verificar(){
-    let r = document.getElementById("resp").value.toLowerCase();
-    let p = document.getElementById("palabra").innerText;
-    if(r === p){
-        puntos++;
-        document.getElementById("pts").innerText = puntos;
-        nuevaPalabra();
-    }
-    document.getElementById("resp").value="";
-}
-
-/* BUSCADOR WIKIPEDIA */
-const input = document.getElementById("q");
-input.addEventListener("input", async ()=>{
-    let v = input.value;
-    if(v.length < 2){ document.getElementById("sugerencias").innerHTML=""; return; }
-    let r = await fetch(
-      "https://es.wikipedia.org/w/api.php?action=opensearch&origin=*&search="+v
-    );
-    let d = await r.json();
-    let s = document.getElementById("sugerencias");
-    s.innerHTML="";
-    d[1].slice(0,5).forEach(t=>{
-        let div=document.createElement("div");
-        div.className="sug";
-        div.innerText=t;
-        div.onclick=()=>{ input.value=t; buscar(); s.innerHTML=""; };
-        s.appendChild(div);
-    });
-});
-
-async function buscar(){
-    let q = input.value;
-    let res = document.getElementById("res");
-    res.innerHTML="⏳ Buscando...";
-    let r = await fetch(
-      "https://es.wikipedia.org/api/rest_v1/page/summary/"+q
-    );
-    let d = await r.json();
-    res.innerHTML = "<b>"+d.title+"</b><p>"+(d.extract||"")+"</p>";
-    if(d.thumbnail){
-        res.innerHTML += "<img src='"+d.thumbnail.source+"'>";
-    }
-}
-</script>
 
 </body>
 </html>
 """
 
-@app.route("/")
-def home():
-    return render_template_string(HTML)
-
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(debug=True)
