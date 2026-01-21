@@ -3,94 +3,216 @@ from flask import Flask, render_template_string, request
 
 app = Flask(__name__)
 
-# Base de datos temporal (en memoria)
-chat_mensajes = []
-jugadores_conectados = {}
-
 html_template = """
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arena Vital 3vs3</title>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Roboto:wght@300;700&display=swap" rel="stylesheet">
+    <title>Sistema Vital - Arena de Cazadores</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Poppins:wght@300;600&display=swap" rel="stylesheet">
     <style>
-        :root { --neon-blue: #00f3ff; --neon-red: #ff0055; --dark: #0a0a12; }
-        body { background: var(--dark); color: white; font-family: 'Roboto', sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
-        h1 { font-family: 'Orbitron', sans-serif; color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue); }
-        
-        .arena-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 1000px; }
-        
-        .card { background: rgba(255,255,255,0.05); border: 1px solid var(--neon-blue); border-radius: 15px; padding: 20px; box-shadow: 0 0 15px rgba(0,243,255,0.2); }
-        
-        /* Chat Estilo Gaming */
-        #chat-box { height: 200px; overflow-y: auto; background: rgba(0,0,0,0.5); border-radius: 10px; padding: 10px; margin-bottom: 10px; border-left: 3px solid var(--neon-blue); }
-        .msg { margin-bottom: 8px; font-size: 14px; }
-        .msg b { color: var(--neon-blue); }
+        :root { 
+            --azul: #00f3ff; --rojo: #ff0055; --verde: #00ff88; --oro: #ffd700; 
+            --fondo: #050510; --btn-size: 14px; 
+        }
+        body { 
+            margin: 0; background: var(--fondo); color: white; 
+            font-family: 'Poppins', sans-serif; overflow-x: hidden; transition: 0.3s; 
+        }
+        h1, h2, h3, .orbitron { font-family: 'Orbitron', sans-serif; }
 
-        .btn { background: none; border: 2px solid var(--neon-blue); color: var(--neon-blue); padding: 10px 20px; cursor: pointer; font-family: 'Orbitron', sans-serif; font-weight: bold; transition: 0.3s; border-radius: 5px; }
-        .btn:hover { background: var(--neon-blue); color: black; box-shadow: 0 0 20px var(--neon-blue); }
+        /* --- HUD SUPERIOR --- */
+        .hud { 
+            position: fixed; top: 0; width: 100%; background: rgba(0,0,0,0.9); 
+            padding: 10px; display: flex; justify-content: space-around; 
+            border-bottom: 2px solid var(--azul); z-index: 1000; font-size: 11px;
+        }
+
+        /* --- BUSCADOR (1) --- */
+        .buscador-container {
+            margin-top: 70px; padding: 20px; width: 90%; max-width: 500px;
+            background: rgba(255,255,255,0.05); border-radius: 15px;
+            border: 1px solid var(--azul); margin-left: auto; margin-right: auto;
+        }
+        input { 
+            width: 70%; padding: 10px; border-radius: 5px; border: 1px solid var(--azul);
+            background: rgba(0,0,0,0.5); color: white;
+        }
+
+        /* --- MAPA E ISLAS (2) --- */
+        .mapa { height: 80vh; position: relative; display: flex; justify-content: center; align-items: center; }
+        .isla { 
+            position: absolute; width: 130px; height: 85px; background: rgba(0,0,0,0.8);
+            border: 2px solid var(--azul); border-radius: 15px; display: flex;
+            flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; transition: 0.3s; text-align: center; font-size: 12px;
+        }
+        .isla:hover { transform: scale(1.1); box-shadow: 0 0 20px var(--azul); }
         
-        input { background: rgba(255,255,255,0.1); border: 1px solid var(--neon-blue); color: white; padding: 10px; border-radius: 5px; width: 70%; }
-        
-        .team-select { display: flex; justify-content: space-around; margin-top: 20px; }
-        .team-red { color: var(--neon-red); border-color: var(--neon-red); }
+        #base { top: 10%; border-color: var(--oro); }
+        #entrenar { left: 10%; top: 40%; border-color: var(--verde); }
+        #calabozo { right: 10%; top: 40%; border-color: var(--rojo); }
+        #mochila-icon { bottom: 10%; left: 20%; width: 60px; height: 60px; border-radius: 50%; }
+        #ajustes-icon { bottom: 10%; right: 20%; width: 60px; height: 60px; border-radius: 50%; }
+
+        /* --- PANTALLAS --- */
+        .pantalla { 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.98); z-index: 2000; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center;
+        }
+        .btn-game { 
+            padding: var(--btn-size); margin: 10px; border: none; border-radius: 8px;
+            font-family: 'Orbitron'; cursor: pointer; font-weight: bold;
+        }
+
+        /* --- JEFE --- */
+        #jefe-hp-bar { width: 250px; height: 15px; background: #333; border: 1px solid red; margin: 15px; }
+        #jefe-hp-fill { height: 100%; background: red; width: 100%; transition: 0.3s; }
+
+        /* --- INVENTARIO --- */
+        .grid-items { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .item-slot { width: 70px; height: 70px; border: 1px dashed var(--azul); display: flex; align-items: center; justify-content: center; font-size: 25px; }
     </style>
 </head>
 <body>
 
-    <h1>3vs3 ARENA VITAL</h1>
+    <div class="hud">
+        <div>💰 <span id="m-val">500</span></div>
+        <div class="orbitron" style="color:var(--rojo)">🏹 <span id="clase-val">CLASE E</span></div>
+        <div class="orbitron" style="color:var(--oro)">LVL <span id="lvl-val">1</span></div>
+    </div>
 
-    <div class="arena-container">
+    <div class="buscador-container">
+        <h3 class="orbitron" style="color:var(--azul); margin:0 0 10px 0;">1. BUSCADOR VITAL</h3>
+        <input type="text" id="bus-input" placeholder="Ej: Meditación...">
+        <button class="btn-game" style="background:var(--azul); margin:0;" onclick="buscar()">Wiki</button>
+        <p id="wiki-res" style="font-size:11px; margin-top:10px; color:#ccc;"></p>
+    </div>
+
+    <div class="mapa">
+        <div class="isla" id="base" onclick="abrir('p-base')">🏰 <b>LA BASE</b><small>Tienda</small></div>
+        <div class="isla" id="entrenar" onclick="abrir('p-entrenar')">🏋️ <b>ENTRENO</b><small>+ Monedas</small></div>
+        <div class="isla" id="calabozo" onclick="abrir('p-jefe')">👹 <b>CALABOZO</b><small>Jefe Final</small></div>
         
-        <div class="card">
-            <h3>🛡️ Tu Perfil de Guerrero</h3>
-            <div id="status">
-                <p>Estado: <span id="user-status">Buscando Equipo...</span></p>
-                <div class="team-select">
-                    <button class="btn" onclick="unirse('Azul')">EQUIPO AZUL</button>
-                    <button class="btn team-red" onclick="unirse('Rojo')">EQUIPO ROJO</button>
-                </div>
-            </div>
-            <hr style="border: 0.5px solid #333; margin: 20px 0;">
-            <h3>⚔️ Acciones de Batalla</h3>
-            <div id="battle-btns">
-                <button class="btn" onclick="atacar()">ATACAR</button>
-                <button class="btn" style="border-color: #28a745; color: #28a745;">CURAR</button>
-            </div>
-        </div>
+        <div class="isla" id="mochila-icon" onclick="abrir('p-mochila')">🎒</div>
+        <div class="isla" id="ajustes-icon" onclick="abrir('p-ajustes')">⚙️</div>
+    </div>
 
-        <div class="card">
-            <h3>💬 Chat de Escuadrón</h3>
-            <div id="chat-box">
-                <div class="msg"><b>Sistema:</b> Bienvenido a la arena. Esperando jugadores...</div>
-                {% for m in mensajes %}
-                <div class="msg"><b>{{ m.user }}:</b> {{ m.texto }}</div>
-                {% endfor %}
-            </div>
-            <form action="/enviar" method="POST" style="display:flex; gap:5px;">
-                <input type="text" name="mensaje" placeholder="Escribe a tu equipo..." required>
-                <button type="submit" class="btn">ENVIAR</button>
-            </form>
-        </div>
+    <div id="p-base" class="pantalla">
+        <h1 class="orbitron" style="color:var(--oro)">LA BASE CENTRAL</h1>
+        <button class="btn-game" style="background:var(--rojo); color:white;" onclick="subirClase()">SUBIR A CLASE S (1000 Mo)</button>
+        <button class="btn-game" style="background:var(--azul)" onclick="comprarItem('⚡', 'Súper Láser', 300)">SÚPER LÁSER (300 Mo)</button>
+        <button class="btn-game" onclick="cerrar()">SALIR</button>
+    </div>
 
+    <div id="p-jefe" class="pantalla">
+        <h2 class="orbitron" style="color:var(--rojo)">BOSS: EL DESTRUCTOR</h2>
+        <div id="jefe-img" style="font-size:100px;">👹</div>
+        <div id="jefe-hp-bar"><div id="jefe-hp-fill"></div></div>
+        <button class="btn-game" style="background:var(--rojo); color:white;" onclick="atacarJefe()">ATAQUE SÓNICO</button>
+        <button class="btn-game" id="btn-especial" style="display:none; background:var(--azul)" onclick="atacarJefe(100)">USAR LÁSER</button>
+        <button onclick="cerrar()" style="background:none; color:white; border:none;">HUIR</button>
+    </div>
+
+    <div id="p-mochila" class="pantalla">
+        <h1 class="orbitron">INVENTARIO</h1>
+        <div class="grid-items">
+            <div class="item-slot">🗡️</div>
+            <div class="item-slot" id="slot-especial">空</div>
+            <div class="item-slot">空</div>
+        </div>
+        <button class="btn-game" onclick="cerrar()">CERRAR</button>
+    </div>
+
+    <div id="p-ajustes" class="pantalla">
+        <h1 class="orbitron">AJUSTES</h1>
+        <p>Tamaño de Controles:</p>
+        <button class="btn-game" onclick="setBtnSize('12px')">PEQUEÑO</button>
+        <button class="btn-game" onclick="setBtnSize('22px')">GRANDE</button>
+        <button class="btn-game" onclick="cerrar()" style="background:var(--verde)">GUARDAR</button>
+    </div>
+
+    <div id="p-entrenar" class="pantalla">
+        <h1 class="orbitron">SALA DE ENTRENAMIENTO</h1>
+        <p>¿Qué te da Súper Fuerza?</p>
+        <button class="btn-game" style="background:var(--verde)" onclick="ganar(100)">Comer Sano</button>
+        <button class="btn-game" style="background:var(--rojo)" onclick="ganar(0)">Golosinas</button>
+        <button onclick="cerrar()">VOLVER</button>
     </div>
 
     <script>
-        function unirse(equipo) {
-            document.getElementById('user-status').innerText = "Conectado al Equipo " + equipo;
-            alert("Te has unido al equipo " + equipo + ". ¡Prepara tus habilidades!");
+        let monedas = 500;
+        let claseIdx = 0;
+        let clases = ["CLASE E", "CLASE D", "CLASE C", "CLASE B", "CLASE S", "NACIONAL"];
+        let hpJefe = 1000;
+        let armaLvl = 1;
+
+        function abrir(id) { document.getElementById(id).style.display = 'flex'; }
+        function cerrar() { document.querySelectorAll('.pantalla').forEach(p => p.style.display = 'none'); }
+
+        async function buscar() {
+            const q = document.getElementById('bus-input').value;
+            const res = document.getElementById('wiki-res');
+            if(!q) return;
+            res.innerText = "Buscando datos...";
+            try {
+                const r = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${q}`);
+                const d = await r.json();
+                res.innerText = d.extract || "No hallado.";
+            } catch(e) { res.innerText = "Error de red."; }
         }
 
-        function atacar() {
-            const daño = Math.floor(Math.random() * 50) + 10;
-            alert("¡Ataque realizado! Has causado " + daño + " de daño al equipo enemigo.");
+        function ganar(cant) {
+            if(cant > 0) {
+                monedas += cant;
+                actualizarHud();
+                alert("¡Entrenamiento completado! +100 Mo.");
+            } else { alert("Mal hábito. No ganas monedas."); }
         }
-        
-        // Auto-scroll del chat al final
-        const chat = document.getElementById('chat-box');
-        chat.scrollTop = chat.scrollHeight;
+
+        function comprarItem(icon, nombre, precio) {
+            if(monedas >= precio) {
+                monedas -= precio;
+                document.getElementById('slot-especial').innerText = icon;
+                document.getElementById('btn-especial').style.display = 'inline-block';
+                actualizarHud();
+                alert(nombre + " añadido a la mochila.");
+            } else { alert("Monedas insuficientes."); }
+        }
+
+        function subirClase() {
+            if(monedas >= 1000 && claseIdx < clases.length - 1) {
+                monedas -= 1000;
+                claseIdx++;
+                actualizarHud();
+                alert("¡Rango de Cazador actualizado!");
+            } else { alert("Faltan monedas o eres Rango Máximo."); }
+        }
+
+        function atacarJefe(bonus = 0) {
+            let danio = (25 * armaLvl) + bonus;
+            hpJefe -= danio;
+            if(hpJefe < 0) hpJefe = 0;
+            document.getElementById('jefe-hp-fill').style.width = (hpJefe/10) + "%";
+            
+            // Subir nivel de arma por usarla
+            armaLvl += 0.1;
+            document.getElementById('lvl-val').innerText = Math.floor(armaLvl);
+
+            if(hpJefe <= 0) {
+                alert("¡CALABOZO CONQUISTADO! Eres una Leyenda.");
+                cerrar();
+            }
+        }
+
+        function setBtnSize(s) { document.documentElement.style.setProperty('--btn-size', s); }
+
+        function actualizarHud() {
+            document.getElementById('m-val').innerText = monedas;
+            document.getElementById('clase-val').innerText = clases[claseIdx];
+        }
     </script>
 </body>
 </html>
@@ -98,17 +220,7 @@ html_template = """
 
 @app.route('/')
 def home():
-    return render_template_string(html_template, mensajes=chat_mensajes)
-
-@app.route('/enviar', methods=['POST'])
-def enviar():
-    msg = request.form.get('mensaje')
-    if msg:
-        # Guardamos el mensaje (en un sistema real usaríamos el nombre del usuario logueado)
-        chat_mensajes.append({"user": "Jugador", "texto": msg})
-        # Limitamos a los últimos 15 mensajes para no saturar
-        if len(chat_mensajes) > 15: chat_mensajes.pop(0)
-    return home()
+    return render_template_string(html_template)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
