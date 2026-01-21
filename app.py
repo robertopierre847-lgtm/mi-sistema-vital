@@ -1,34 +1,56 @@
 from flask import Flask, request, render_template_string, jsonify
-import requests, os, random
+import requests, os
 
 app = Flask(__name__)
 
 # =========================
-# 🌍 BUSCADOR PELÍCULAS / ANIME
+# 🟦 BUSCADOR EDUCATIVO
 # =========================
-def buscar_wiki(q):
-    try:
-        url = "https://es.wikipedia.org/api/rest_v1/page/summary/" + q
-        r = requests.get(url, timeout=5)
-        r.raise_for_status()
-        d = r.json()
-        return {
-            "titulo": d.get("title",""),
-            "texto": d.get("extract","No se encontró información."),
-            "img": d.get("thumbnail",{}).get("source","")
-        }
-    except:
-        return {"titulo":"Error al buscar", "texto":"No se pudo obtener información.","img":""}
+def buscar_duckduckgo(q):
+    """Obtiene resultados de DuckDuckGo instant answer API"""
+    url = "https://api.duckduckgo.com/"
+    params = {
+        "q": q,
+        "format": "json",
+        "t": "mentiscope"
+    }
+    r = requests.get(url, params=params)
+    if r.status_code != 200:
+        return []
+    d = r.json()
+    results = []
+    # Resultado principal
+    if d.get("AbstractURL"):
+        results.append({
+            "titulo": d.get("Heading",""),
+            "descripcion": d.get("AbstractText",""),
+            "url": d.get("AbstractURL",""),
+            "img": d.get("Image","")
+        })
+    # Otros relacionados
+    for r in d.get("RelatedTopics", []):
+        if "Text" in r and "FirstURL" in r:
+            results.append({
+                "titulo": r.get("Text",""),
+                "descripcion": r.get("Text",""),
+                "url": r.get("FirstURL",""),
+                "img": r.get("Icon",{}).get("URL","")
+            })
+    return results
 
-# =========================
-# 🌙 FRASES MOTIVADORAS
-# =========================
-frases = [
-    "Disfruta tu película favorita 🎬",
-    "Sumérgete en el anime 🌟",
-    "Respira y relájate 💙",
-    "Un momento para ti mismo 🍿"
-]
+def buscar_wikipedia(q):
+    """Complementa con Wikipedia"""
+    url = f"https://es.wikipedia.org/api/rest_v1/page/summary/{q}"
+    r = requests.get(url)
+    if r.status_code != 200:
+        return None
+    d = r.json()
+    return {
+        "titulo": d.get("title",""),
+        "descripcion": d.get("extract",""),
+        "url": f"https://es.wikipedia.org/wiki/{q}",
+        "img": d.get("thumbnail",{}).get("source","")
+    }
 
 # =========================
 # 🌐 RUTAS
@@ -40,99 +62,120 @@ def inicio():
 @app.route("/buscar")
 def buscar():
     q = request.args.get("q","")
-    r = buscar_wiki(q)
-    return jsonify(r if r else {})
-
-@app.route("/relax")
-def relax():
-    return jsonify({"frase": random.choice(frases)})
+    resultados = []
+    if q:
+        resultados.extend(buscar_duckduckgo(q))
+        wiki = buscar_wikipedia(q)
+        if wiki:
+            resultados.insert(0,wiki)
+    return jsonify(resultados)
 
 # =========================
-# 🎨 HTML + DISEÑO CRISTAL
+# 🎨 HTML + CSS + JS
 # =========================
 HTML = """
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>🎬 Cine & Anime</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buscador Escolar 🔍</title>
 <style>
 body{
-    background: linear-gradient(135deg,#e3f2fd,#ffffff);
     font-family: Arial;
-    padding:15px;
+    background: linear-gradient(135deg,#e6f4ff,#ffffff);
+    margin:0;
+    padding:20px;
 }
+h1{text-align:center;color:#0077ff;}
 .card{
-    background: rgba(255,255,255,0.6);
+    background: rgba(255,255,255,0.7);
     backdrop-filter: blur(10px);
-    border-radius:15px;
-    padding:15px;
-    margin-bottom:15px;
-    animation:fade 0.6s;
+    border-radius: 16px;
+    padding: 20px;
+    max-width: 600px;
+    margin: 20px auto;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+.card:hover{transform: translateY(-5px);}
+input{
+    width: 80%;
+    padding: 10px;
+    border-radius: 10px;
+    border:1px solid #aad;
 }
 button{
-    background:#2196f3;
-    color:white;
+    padding: 10px 15px;
     border:none;
-    padding:10px;
     border-radius:10px;
-    margin:5px 0;
-    transition:transform 0.2s;
-    width:100%;
-    font-size:16px;
+    background:#0077ff;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
 }
-button:hover{transform:scale(1.05);}
-img{max-width:100%;border-radius:10px;margin-top:10px;}
-input{width:100%;padding:10px;border-radius:8px;border:1px solid #aad;margin-bottom:5px;}
-@keyframes fade{from{opacity:0}to{opacity:1}}
-h1,h2{color:#0077ff;text-align:center;}
+.result{
+    display:flex;
+    flex-direction: column;
+    margin-top: 15px;
+    gap: 10px;
+}
+.result div{
+    background: rgba(240,247,255,0.8);
+    border-radius:10px;
+    padding:10px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+}
+.result img{
+    max-width:80px;
+    border-radius:6px;
+}
+a{color:#0077ff;text-decoration:none;font-weight:bold;}
 </style>
 </head>
 <body>
-
-<h1>🎬 Cine & Anime</h1>
-
+<h1>Buscador Escolar 🔍</h1>
 <div class="card">
-<h2>🔍 Buscador</h2>
-<input id="q" placeholder="Ej: Naruto, One Piece, Avengers...">
+<input id="q" placeholder="Escribe tu búsqueda...">
 <button onclick="buscar()">Buscar</button>
-<h3 id="t"></h3>
-<img id="img">
-<p id="txt"></p>
-</div>
-
-<div class="card">
-<h2>🌙 Relajación</h2>
-<button onclick="relax()">Inspiración</button>
-<p id="fr"></p>
+<div class="result" id="res"></div>
 </div>
 
 <script>
 function buscar(){
-    const query = document.getElementById('q').value;
-    if(!query) return;
+    const query = document.getElementById("q").value;
     fetch("/buscar?q="+encodeURIComponent(query))
     .then(r=>r.json())
-    .then(d=>{
-        document.getElementById('t').innerText=d.titulo;
-        document.getElementById('txt').innerText=d.texto;
-        document.getElementById('img').src=d.img || "";
-    })
-    .catch(()=>{alert("Error al buscar");});
-}
-
-function relax(){
-    fetch("/relax").then(r=>r.json()).then(d=>document.getElementById('fr').innerText=d.frase);
+    .then(data=>{
+        const res=document.getElementById("res");
+        res.innerHTML="";
+        if(data.length==0){
+            res.innerHTML="<p>No se encontraron resultados.</p>";
+            return;
+        }
+        data.forEach(d=>{
+            const div=document.createElement("div");
+            div.innerHTML = `
+                ${d.img?'<img src="'+d.img+'">':''}
+                <div>
+                    <a href="${d.url}" target="_blank">${d.titulo}</a>
+                    <p>${d.descripcion}</p>
+                </div>
+            `;
+            res.appendChild(div);
+        });
+    });
 }
 </script>
-
 </body>
 </html>
 """
 
 # =========================
-# RUN
+# 🔹 RUN
 # =========================
 if __name__ == "__main__":
-    import os
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
