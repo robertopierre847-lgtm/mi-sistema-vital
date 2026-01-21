@@ -1,111 +1,96 @@
 import os
-from flask import Flask, render_template_string
+from flask import Flask, render_template_string, request
 
 app = Flask(__name__)
 
-# Codigo corregido y numerado: 1 Buscador, 2 Juego
+# Base de datos temporal (en memoria)
+chat_mensajes = []
+jugadores_conectados = {}
+
 html_template = """
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Vital - Roberto Pierre</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+    <title>Arena Vital 3vs3</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&family=Roboto:wght@300;700&display=swap" rel="stylesheet">
     <style>
-        :root { --azul: #007bff; --rojo: #dc3545; --verde: #28a745; }
-        body { margin: 0; font-family: 'Poppins', sans-serif; background: #f0f8ff; display: flex; flex-direction: column; align-items: center; padding: 10px; }
-        .card { background: white; border-radius: 20px; padding: 20px; width: 95%; max-width: 450px; margin: 10px 0; border: 1px solid #ddd; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .btn { background: var(--azul); color: white; border: none; padding: 12px; width: 100%; border-radius: 10px; font-weight: bold; margin-top: 10px; cursor: pointer; }
-        .rango { font-weight: 900; padding: 8px 15px; border-radius: 5px; color: white; text-transform: uppercase; margin-bottom: 10px; display: inline-block; text-shadow: 1px 1px 2px black; }
-        .bronce { background: #cd7f32; } .plata { background: #c0c0c0; } .oro { background: #ffd700; color: #333; }
-        .platino { background: #00ced1; } .diamante { background: #b9f2ff; color: #333; }
-        .heroico { background: #ff4500; } .maestro { background: #8a2be2; box-shadow: 0 0 10px #8a2be2; }
-        #res-img { width: 100%; border-radius: 10px; margin-top: 10px; display: none; border: 2px solid var(--azul); }
-        input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--azul); box-sizing: border-box; outline: none; }
-        .reto { margin-top: 15px; padding: 10px; border: 2px solid var(--rojo); color: var(--rojo); display: none; border-radius: 10px; font-weight: bold; background: #fff5f5; }
+        :root { --neon-blue: #00f3ff; --neon-red: #ff0055; --dark: #0a0a12; }
+        body { background: var(--dark); color: white; font-family: 'Roboto', sans-serif; margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        h1 { font-family: 'Orbitron', sans-serif; color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue); }
+        
+        .arena-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; width: 100%; max-width: 1000px; }
+        
+        .card { background: rgba(255,255,255,0.05); border: 1px solid var(--neon-blue); border-radius: 15px; padding: 20px; box-shadow: 0 0 15px rgba(0,243,255,0.2); }
+        
+        /* Chat Estilo Gaming */
+        #chat-box { height: 200px; overflow-y: auto; background: rgba(0,0,0,0.5); border-radius: 10px; padding: 10px; margin-bottom: 10px; border-left: 3px solid var(--neon-blue); }
+        .msg { margin-bottom: 8px; font-size: 14px; }
+        .msg b { color: var(--neon-blue); }
+
+        .btn { background: none; border: 2px solid var(--neon-blue); color: var(--neon-blue); padding: 10px 20px; cursor: pointer; font-family: 'Orbitron', sans-serif; font-weight: bold; transition: 0.3s; border-radius: 5px; }
+        .btn:hover { background: var(--neon-blue); color: black; box-shadow: 0 0 20px var(--neon-blue); }
+        
+        input { background: rgba(255,255,255,0.1); border: 1px solid var(--neon-blue); color: white; padding: 10px; border-radius: 5px; width: 70%; }
+        
+        .team-select { display: flex; justify-content: space-around; margin-top: 20px; }
+        .team-red { color: var(--neon-red); border-color: var(--neon-red); }
     </style>
 </head>
 <body>
 
-    <div class="card">
-        <h2 style="color: var(--azul); margin-top:0;">1. Buscador Vital</h2>
-        <input type="text" id="bus" placeholder="Busca salud, nutrición o ejercicio...">
-        <button class="btn" onclick="buscar()">CONSULTAR WIKIPEDIA</button>
-        <img id="res-img" src="">
-        <p id="res-txt" style="font-size: 13px; color: #444; margin-top: 10px;"></p>
-    </div>
+    <h1>3vs3 ARENA VITAL</h1>
 
-    <div class="card">
-        <h2 style="color: var(--azul); margin-top:0;">2. Desafío de Rangos</h2>
-        <div id="game-ui">
-            <div id="badge" class="rango bronce">BRONCE I</div>
-            <div style="font-weight: bold; color: #555;">Nivel <span id="num">1</span>/10</div>
-            <h3 id="pregunta" style="font-size: 18px; color: #333;"></h3>
-            <div id="opciones"></div>
-            <div id="reto" class="reto"></div>
+    <div class="arena-container">
+        
+        <div class="card">
+            <h3>🛡️ Tu Perfil de Guerrero</h3>
+            <div id="status">
+                <p>Estado: <span id="user-status">Buscando Equipo...</span></p>
+                <div class="team-select">
+                    <button class="btn" onclick="unirse('Azul')">EQUIPO AZUL</button>
+                    <button class="btn team-red" onclick="unirse('Rojo')">EQUIPO ROJO</button>
+                </div>
+            </div>
+            <hr style="border: 0.5px solid #333; margin: 20px 0;">
+            <h3>⚔️ Acciones de Batalla</h3>
+            <div id="battle-btns">
+                <button class="btn" onclick="atacar()">ATACAR</button>
+                <button class="btn" style="border-color: #28a745; color: #28a745;">CURAR</button>
+            </div>
         </div>
-        <div id="win-ui" style="display:none;">
-            <h1 style="color: var(--verde);">🏆 ¡GRAN MAESTRO!</h1>
-            <p>Has conquistado la cima de la salud vital.</p>
-            <button class="btn" onclick="location.reload()">REINICIAR TEMPORADA</button>
+
+        <div class="card">
+            <h3>💬 Chat de Escuadrón</h3>
+            <div id="chat-box">
+                <div class="msg"><b>Sistema:</b> Bienvenido a la arena. Esperando jugadores...</div>
+                {% for m in mensajes %}
+                <div class="msg"><b>{{ m.user }}:</b> {{ m.texto }}</div>
+                {% endfor %}
+            </div>
+            <form action="/enviar" method="POST" style="display:flex; gap:5px;">
+                <input type="text" name="mensaje" placeholder="Escribe a tu equipo..." required>
+                <button type="submit" class="btn">ENVIAR</button>
+            </form>
         </div>
+
     </div>
 
     <script>
-        async function buscar() {
-            const q = document.getElementById('bus').value;
-            const t = document.getElementById('res-txt');
-            const img = document.getElementById('res-img');
-            if(!q) return;
-            t.innerText = "Buscando...";
-            try {
-                const r = await fetch(`https://es.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(q)}`);
-                const d = await r.json();
-                t.innerText = d.extract || "Sin resultados.";
-                if(d.thumbnail) { img.src = d.thumbnail.source; img.style.display = "block"; }
-                else { img.style.display = "none"; }
-            } catch(e) { t.innerText = "Error de conexión."; }
+        function unirse(equipo) {
+            document.getElementById('user-status').innerText = "Conectado al Equipo " + equipo;
+            alert("Te has unido al equipo " + equipo + ". ¡Prepara tus habilidades!");
         }
 
-        let current = 0;
-        const preguntas = [
-            {q: "¿Qué mejora la salud mental?", a: "Dormir bien", o: ["Mucho café", "Dormir bien"], ex: "5 Sentadillas", r: "BRONCE", c: "bronce"},
-            {q: "¿Es vital tomar agua?", a: "Sí", o: ["No", "Sí"], ex: "5 Flexiones", r: "PLATA", c: "plata"},
-            {q: "¿Mejor fuente de energía?", a: "Frutas", o: ["Dulces", "Frutas"], ex: "10 Saltos", r: "ORO", c: "oro"},
-            {q: "¿Qué es procrastinar?", a: "Posponer", o: ["Avanzar", "Posponer"], ex: "Estira 15s", r: "PLATINO", c: "platino"},
-            {q: "¿Hacer ejercicio ayuda?", a: "Mucho", o: ["Nada", "Mucho"], ex: "Toca tus pies", r: "DIAMANTE", c: "diamante"},
-            {q: "¿Clave para aprender?", a: "Atención", o: ["Distracción", "Atención"], ex: "5 Abdominales", r: "DIAMANTE IV", c: "diamante"},
-            {q: "¿El sol da vitamina...?", a: "D", o: ["C", "D"], ex: "5 Burpees", r: "HEROICO", c: "heroico"},
-            {q: "¿Leer es bueno?", a: "Sí", o: ["No", "Sí"], ex: "Gira el cuello", r: "HEROICO II", c: "heroico"},
-            {q: "¿Comer sano da vida?", a: "Sí", o: ["No", "Sí"], ex: "Plancha 10s", r: "ELITE", c: "heroico"},
-            {q: "¿Cuál es tu meta?", a: "Ser mejor", o: ["Rendirse", "Ser mejor"], ex: "Baile de victoria", r: "GRAN MAESTRO", c: "maestro"}
-        ];
-
-        function cargar() {
-            if(current >= 10) { document.getElementById('game-ui').style.display="none"; document.getElementById('win-ui').style.display="block"; return; }
-            const p = preguntas[current];
-            document.getElementById('num').innerText = current + 1;
-            document.getElementById('badge').innerText = p.r;
-            document.getElementById('badge').className = "rango " + p.c;
-            document.getElementById('pregunta').innerText = p.q;
-            document.getElementById('reto').style.display = "none";
-            const ops = document.getElementById('opciones'); ops.innerHTML = "";
-            p.o.forEach(o => {
-                const b = document.createElement('button'); b.className = "btn"; b.innerText = o;
-                b.onclick = () => {
-                    if(o === p.a) { current++; cargar(); }
-                    else { 
-                        document.getElementById('reto').innerHTML = "📉 ERROR - PENITENCIA: <br>" + p.ex; 
-                        document.getElementById('reto').style.display = "block";
-                        if(current > 0) current--; 
-                        setTimeout(cargar, 3000); 
-                    }
-                };
-                ops.appendChild(b);
-            });
+        function atacar() {
+            const daño = Math.floor(Math.random() * 50) + 10;
+            alert("¡Ataque realizado! Has causado " + daño + " de daño al equipo enemigo.");
         }
-        cargar();
+        
+        // Auto-scroll del chat al final
+        const chat = document.getElementById('chat-box');
+        chat.scrollTop = chat.scrollHeight;
     </script>
 </body>
 </html>
@@ -113,9 +98,18 @@ html_template = """
 
 @app.route('/')
 def home():
-    return render_template_string(html_template)
+    return render_template_string(html_template, mensajes=chat_mensajes)
+
+@app.route('/enviar', methods=['POST'])
+def enviar():
+    msg = request.form.get('mensaje')
+    if msg:
+        # Guardamos el mensaje (en un sistema real usaríamos el nombre del usuario logueado)
+        chat_mensajes.append({"user": "Jugador", "texto": msg})
+        # Limitamos a los últimos 15 mensajes para no saturar
+        if len(chat_mensajes) > 15: chat_mensajes.pop(0)
+    return home()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port)
-    
