@@ -1,28 +1,16 @@
 from flask import Flask, request, render_template_string, jsonify
-import requests, random, os
+import requests, os, random
 
 app = Flask(__name__)
 
 # =========================
-# 🌐 FRASES CURIOSAS
-# =========================
-frases = [
-    "La creatividad es inteligencia divirtiéndose. 🎨",
-    "Cada error te acerca más al éxito. 🚀",
-    "Aprender es descubrir cosas que no sabías que sabías. 💡",
-    "El conocimiento es el pasaporte hacia tu futuro. 🌟",
-    "Pequeños pasos crean grandes cambios. 👣"
-]
-
-# =========================
-# 🔍 BUSCADOR WIKIPEDIA
+# 🌍 BUSCADOR PELÍCULAS / ANIME
 # =========================
 def buscar_wiki(q):
-    url = "https://es.wikipedia.org/api/rest_v1/page/summary/" + q
     try:
+        url = "https://es.wikipedia.org/api/rest_v1/page/summary/" + q
         r = requests.get(url, timeout=5)
-        if r.status_code != 200:
-            return None
+        r.raise_for_status()
         d = r.json()
         return {
             "titulo": d.get("title",""),
@@ -30,7 +18,17 @@ def buscar_wiki(q):
             "img": d.get("thumbnail",{}).get("source","")
         }
     except:
-        return None
+        return {"titulo":"Error al buscar", "texto":"No se pudo obtener información.","img":""}
+
+# =========================
+# 🌙 FRASES MOTIVADORAS
+# =========================
+frases = [
+    "Disfruta tu película favorita 🎬",
+    "Sumérgete en el anime 🌟",
+    "Respira y relájate 💙",
+    "Un momento para ti mismo 🍿"
+]
 
 # =========================
 # 🌐 RUTAS
@@ -43,107 +41,88 @@ def inicio():
 def buscar():
     q = request.args.get("q","")
     r = buscar_wiki(q)
-    frase = random.choice(frases)
-    return jsonify(r if r else {}, {"frase": frase})
+    return jsonify(r if r else {})
+
+@app.route("/relax")
+def relax():
+    return jsonify({"frase": random.choice(frases)})
 
 # =========================
-# 🎨 HTML + DISEÑO
+# 🎨 HTML + DISEÑO CRISTAL
 # =========================
 HTML = """
 <!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Explora y Aprende</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🎬 Cine & Anime</title>
 <style>
 body{
-    margin:0; padding:20px;
-    font-family: Arial, sans-serif;
-    background: linear-gradient(135deg,#e6f4ff,#ffffff);
+    background: linear-gradient(135deg,#e3f2fd,#ffffff);
+    font-family: Arial;
+    padding:15px;
 }
 .card{
-    background: rgba(255,255,255,0.8);
+    background: rgba(255,255,255,0.6);
     backdrop-filter: blur(10px);
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-}
-h1{
-    text-align:center;
-    color:#0077ff;
-}
-input{
-    width: 70%;
-    padding:10px;
-    border-radius:10px;
-    border:1px solid #aad;
-    margin-right:5px;
+    border-radius:15px;
+    padding:15px;
+    margin-bottom:15px;
+    animation:fade 0.6s;
 }
 button{
-    padding:10px 15px;
-    border:none;
-    border-radius:10px;
-    background:#0077ff;
+    background:#2196f3;
     color:white;
-    cursor:pointer;
-    transition: transform 0.2s;
-}
-button:hover{
-    transform: scale(1.05);
-}
-img{
-    max-width:100%;
+    border:none;
+    padding:10px;
     border-radius:10px;
-    margin-top:10px;
+    margin:5px 0;
+    transition:transform 0.2s;
+    width:100%;
+    font-size:16px;
 }
-#resultado{
-    margin-top:15px;
-}
-.frase{
-    font-style: italic;
-    color:#004bb5;
-    margin-top:10px;
-}
+button:hover{transform:scale(1.05);}
+img{max-width:100%;border-radius:10px;margin-top:10px;}
+input{width:100%;padding:10px;border-radius:8px;border:1px solid #aad;margin-bottom:5px;}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+h1,h2{color:#0077ff;text-align:center;}
 </style>
 </head>
 <body>
 
-<h1>🔎 Explora y Aprende</h1>
+<h1>🎬 Cine & Anime</h1>
 
 <div class="card">
-    <input id="q" placeholder="Escribe un tema...">
-    <button onclick="buscar()">Buscar</button>
-    <div id="resultado">
-        <h2 id="titulo"></h2>
-        <p id="texto"></p>
-        <img id="img">
-        <p class="frase" id="frase"></p>
-    </div>
+<h2>🔍 Buscador</h2>
+<input id="q" placeholder="Ej: Naruto, One Piece, Avengers...">
+<button onclick="buscar()">Buscar</button>
+<h3 id="t"></h3>
+<img id="img">
+<p id="txt"></p>
+</div>
+
+<div class="card">
+<h2>🌙 Relajación</h2>
+<button onclick="relax()">Inspiración</button>
+<p id="fr"></p>
 </div>
 
 <script>
 function buscar(){
-    let query = document.getElementById("q").value;
+    const query = document.getElementById('q').value;
     if(!query) return;
     fetch("/buscar?q="+encodeURIComponent(query))
     .then(r=>r.json())
-    .then(data=>{
-        let info = data[0];
-        let frase = data[1].frase;
-        if(info.titulo){
-            document.getElementById("titulo").innerText = info.titulo;
-            document.getElementById("texto").innerText = info.texto;
-            document.getElementById("img").src = info.img || "";
-            document.getElementById("frase").innerText = frase;
-        } else {
-            document.getElementById("titulo").innerText = "No se encontró información";
-            document.getElementById("texto").innerText = "";
-            document.getElementById("img").src = "";
-            document.getElementById("frase").innerText = frase;
-        }
-    });
+    .then(d=>{
+        document.getElementById('t').innerText=d.titulo;
+        document.getElementById('txt').innerText=d.texto;
+        document.getElementById('img').src=d.img || "";
+    })
+    .catch(()=>{alert("Error al buscar");});
+}
+
+function relax(){
+    fetch("/relax").then(r=>r.json()).then(d=>document.getElementById('fr').innerText=d.frase);
 }
 </script>
 
@@ -152,7 +131,7 @@ function buscar(){
 """
 
 # =========================
-# 🚀 RUN
+# RUN
 # =========================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
