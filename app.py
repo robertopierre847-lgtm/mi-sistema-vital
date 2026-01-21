@@ -3,124 +3,130 @@ import requests
 
 app = Flask(__name__)
 
+# ================= BUSCADOR WIKIPEDIA =================
+def buscar_wikipedia(query):
+    url = "https://es.wikipedia.org/api/rest_v1/page/summary/" + query.replace(" ", "_")
+    r = requests.get(url)
+
+    if r.status_code != 200:
+        return None, None
+
+    data = r.json()
+    texto = data.get("extract", "No se encontró información.")
+    imagen = None
+
+    if "thumbnail" in data:
+        imagen = data["thumbnail"]["source"]
+
+    return texto, imagen
+
+# ================= RUTA PRINCIPAL =================
+@app.route("/", methods=["GET", "POST"])
+def inicio():
+    resultado = ""
+    imagen = ""
+
+    if request.method == "POST":
+        busqueda = request.form.get("buscar", "").strip()
+        if busqueda:
+            texto, img = buscar_wikipedia(busqueda)
+            if texto:
+                resultado = texto
+                imagen = img
+            else:
+                resultado = "No se encontró información."
+
+    return render_template_string(HTML, resultado=resultado, imagen=imagen)
+
+# ================= HTML =================
 HTML = """
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
 <title>Buscador Inteligente</title>
-
 <style>
 body{
-    margin:0;
-    font-family:Arial;
-    background:linear-gradient(135deg,#e6f2ff,#ffffff);
-    color:#003366;
+    font-family: Arial;
+    background: linear-gradient(135deg,#e6f2ff,#ffffff);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
 }
-
-.contenedor{
-    max-width:900px;
-    margin:40px auto;
-    padding:30px;
-    background:rgba(255,255,255,0.7);
-    backdrop-filter:blur(12px);
+.card{
+    background:rgba(255,255,255,0.85);
+    backdrop-filter: blur(10px);
+    padding:20px;
+    width:90%;
+    max-width:500px;
     border-radius:20px;
-    box-shadow:0 0 30px rgba(0,0,0,0.1);
+    box-shadow:0 10px 30px rgba(0,0,0,0.1);
 }
-
-h1{text-align:center}
-
+h1{
+    text-align:center;
+    color:#0055aa;
+}
 input{
     width:100%;
-    padding:15px;
-    border-radius:15px;
-    border:1px solid #99ccff;
-    font-size:16px;
+    padding:10px;
+    border-radius:10px;
+    border:1px solid #ccc;
+    margin-bottom:10px;
 }
-
 button{
-    margin-top:15px;
-    padding:15px;
     width:100%;
-    border:none;
-    border-radius:15px;
-    background:#3399ff;
+    padding:10px;
+    background:#0055aa;
     color:white;
+    border:none;
+    border-radius:10px;
     font-size:16px;
-    cursor:pointer;
 }
-
 .resultado{
-    margin-top:25px;
-    background:white;
-    padding:20px;
-    border-radius:15px;
+    margin-top:15px;
+    color:#333;
 }
-
 img{
     max-width:100%;
     border-radius:15px;
-    margin-bottom:15px;
+    margin-top:10px;
 }
-
 .relax{
-    margin-top:30px;
+    margin-top:15px;
+    font-size:14px;
+    color:#555;
     text-align:center;
-    opacity:0.8;
 }
 </style>
-
 </head>
 <body>
 
-<div class="contenedor">
-    <h1>🔍 Buscador Inteligente</h1>
+<div class="card">
+<h1>🔍 Buscador Relax</h1>
 
-    <form method="post">
-        <input name="busqueda" placeholder="Busca ciencia, historia, animales...">
-        <button>Buscar</button>
-    </form>
+<form method="post">
+<input name="buscar" placeholder="Busca algo (historia, ciencia...)">
+<button>Buscar</button>
+</form>
 
-    {% if texto %}
-    <div class="resultado">
-        {% if imagen %}
-            <img src="{{imagen}}">
-        {% endif %}
-        <p>{{texto}}</p>
-    </div>
-    {% endif %}
+{% if resultado %}
+<div class="resultado">{{resultado}}</div>
+{% endif %}
 
-    <div class="relax">
-        🌿 Respira  
-        💙 Mantén la calma  
-        🌊 La información fluye
-    </div>
+{% if imagen %}
+<img src="{{imagen}}">
+{% endif %}
+
+<div class="relax">
+Respira profundo 🌿<br>
+Este espacio es para aprender con calma
+</div>
 </div>
 
 </body>
 </html>
 """
 
-@app.route("/", methods=["GET","POST"])
-def inicio():
-    texto = ""
-    imagen = ""
-
-    if request.method == "POST":
-        q = request.form.get("busqueda","").strip()
-        if q:
-            url = "https://es.wikipedia.org/api/rest_v1/page/summary/" + q.replace(" ","_")
-            r = requests.get(url)
-
-            if r.status_code == 200:
-                data = r.json()
-                texto = data.get("extract","No encontré información.")
-                if "thumbnail" in data:
-                    imagen = data["thumbnail"].get("source","")
-            else:
-                texto = "No se pudo encontrar información 😌"
-
-    return render_template_string(HTML, texto=texto, imagen=imagen)
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+# ❗ NO app.run() ❗
+# Render usa gunicorn
