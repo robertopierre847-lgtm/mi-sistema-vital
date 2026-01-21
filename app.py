@@ -1,248 +1,196 @@
-from flask import Flask, request, render_template_string
-import random, json, os, time
+from flask import Flask, request, render_template_string, jsonify
+import json, os
 
 app = Flask(__name__)
 
-# ===============================
-# 🧠 ARCHIVO DE MEMORIA
-# ===============================
-ARCHIVO = "mentiscope_memoria.json"
+# =========================
+# 📂 GUARDADO
+# =========================
+ARCHIVO = "progreso.json"
 
-if os.path.exists(ARCHIVO):
-    with open(ARCHIVO, "r", encoding="utf-8") as f:
-        HISTORIAL = json.load(f)
-else:
-    HISTORIAL = []
+def cargar():
+    if os.path.exists(ARCHIVO):
+        return json.load(open(ARCHIVO, "r", encoding="utf-8"))
+    return {"nivel": 1, "puntos": 0, "vida": 100}
 
-# ===============================
-# 🧩 CASOS PSICOLÓGICOS AVANZADOS
-# ===============================
-CASOS = [
-    {
-        "caso": "Dijiste que llegaste tarde porque había tráfico, pero nadie más llegó tarde.",
-        "claves": ["porque", "tráfico"],
-        "riesgo": 15
-    },
-    {
-        "caso": "Afirmas que olvidaste algo importante, pero recuerdas muchos detalles.",
-        "claves": ["olvidé", "no recuerdo"],
-        "riesgo": 20
-    },
-    {
-        "caso": "Dices que siempre actúas bien, incluso cuando nadie te observa.",
-        "claves": ["siempre", "nunca"],
-        "riesgo": 25
-    },
-    {
-        "caso": "Cambias ligeramente tu historia cuando te hacen la misma pregunta.",
-        "claves": ["tal vez", "creo"],
-        "riesgo": 30
-    }
+def guardar(data):
+    json.dump(data, open(ARCHIVO, "w", encoding="utf-8"), ensure_ascii=False)
+
+estado = cargar()
+
+# =========================
+# 🧩 PREGUNTAS (30)
+# =========================
+preguntas = [
+    {"p":"Si ayudas a alguien sin esperar nada, ¿qué demuestras?",
+     "o":["Interés","Empatía","Miedo"], "r":1},
+    {"p":"Decir la verdad aunque cueste es señal de…",
+     "o":["Debilidad","Valentía","Problemas"], "r":1},
 ]
 
-PALABRAS_SOSPECHOSAS = [
-    "creo", "tal vez", "quizás", "supongo",
-    "no recuerdo", "más o menos", "siempre", "nunca"
-]
+# rellenar hasta 30
+while len(preguntas) < 30:
+    preguntas.append(preguntas[-1])
 
-PREGUNTAS_PRESION = [
-    "¿Responderías igual si alguien pudiera comprobarlo?",
-    "¿Qué parte de tu historia cambiarías ahora?",
-    "¿Por qué esta respuesta te parece segura?",
-    "¿Qué pasaría si estuvieras equivocado?",
-    "¿Alguien más confirmaría esto sin dudar?"
-]
+# =========================
+# 🌐 RUTAS
+# =========================
+@app.route("/")
+def inicio():
+    return render_template_string(HTML)
 
-# ===============================
-# 🔍 LÓGICA 474 AVANZADA
-# ===============================
-def analizar_mente(texto):
-    texto_l = texto.lower()
-    puntuacion = 74  # base 474 reducida
-    alertas = []
+@app.route("/estado")
+def ver_estado():
+    return jsonify(estado)
 
-    # Longitud
-    if len(texto) < 20:
-        puntuacion -= 15
-        alertas.append("respuesta breve")
-    if len(texto) > 160:
-        puntuacion -= 10
-        alertas.append("exceso de detalle")
+@app.route("/responder", methods=["POST"])
+def responder():
+    global estado
+    data = request.json
+    nivel = estado["nivel"] - 1
+    correcta = preguntas[nivel]["r"]
 
-    # Palabras sospechosas
-    for p in PALABRAS_SOSPECHOSAS:
-        if p in texto_l:
-            puntuacion -= 6
-            alertas.append(p)
-
-    # Seguridad aparente
-    if "porque" in texto_l or "ya que" in texto_l:
-        puntuacion += 8
-
-    # Casos mentales
-    caso = random.choice(CASOS)
-    for c in caso["claves"]:
-        if c in texto_l:
-            puntuacion -= caso["riesgo"]
-
-    # Estado final
-    if puntuacion >= 80:
-        estado = "🟢 COHERENCIA ALTA"
-    elif puntuacion >= 55:
-        estado = "🟡 INESTABILIDAD DETECTADA"
+    if data["op"] == correcta:
+        estado["puntos"] += 5
+        if estado["nivel"] == 30:
+            estado["vida"] -= 10
+        else:
+            estado["nivel"] += 1
+        ok = True
     else:
-        estado = "🔴 NARRATIVA COMPROMETIDA"
+        estado["puntos"] -= 2
+        if estado["nivel"] == 30:
+            estado["vida"] += 5
+        ok = False
 
-    return {
-        "puntos": max(0, min(100, puntuacion)),
-        "estado": estado,
-        "alertas": list(set(alertas)),
-        "caso": caso["caso"],
-        "pregunta": random.choice(PREGUNTAS_PRESION)
-    }
+    if estado["vida"] < 0: estado["vida"] = 0
+    if estado["vida"] > 100: estado["vida"] = 100
 
-# ===============================
-# 🌐 RUTA PRINCIPAL
-# ===============================
-@app.route("/", methods=["GET", "POST"])
-def index():
-    resultado = None
+    guardar(estado)
+    return jsonify({"ok": ok, "estado": estado})
 
-    if request.method == "POST":
-        frase = request.form.get("frase", "").strip()
-
-        if frase:
-            resultado = analizar_mente(frase)
-
-            HISTORIAL.append({
-                "frase": frase,
-                "estado": resultado["estado"],
-                "puntos": resultado["puntos"],
-                "time": int(time.time())
-            })
-
-            with open(ARCHIVO, "w", encoding="utf-8") as f:
-                json.dump(HISTORIAL, f, ensure_ascii=False, indent=2)
-
-    return render_template_string(HTML, resultado=resultado, historial=HISTORIAL[-5:])
-
-# ===============================
-# 🎨 HTML NOIR PSICOLÓGICO
-# ===============================
+# =========================
+# 🎨 HTML + CSS + JS
+# =========================
 HTML = """
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>MENTISCOPE 474</title>
 <style>
 body{
-    background:#0b0e13;
-    color:#e6e9ef;
-    font-family:Arial, sans-serif;
+margin:0;font-family:Arial;
+background:linear-gradient(135deg,#e6f4ff,#fff);
 }
 .card{
-    max-width:480px;
-    margin:40px auto;
-    padding:20px;
-    background:#1c2330;
-    border-radius:18px;
-    box-shadow:0 0 40px rgba(0,0,0,0.6);
-    animation:fade 0.8s;
+max-width:420px;margin:20px auto;
+background:rgba(255,255,255,.75);
+backdrop-filter:blur(10px);
+border-radius:20px;padding:20px;
+box-shadow:0 10px 30px rgba(0,0,0,.1);
 }
-h1{
-    text-align:center;
-    color:#4da3ff;
-}
-textarea{
-    width:100%;
-    padding:12px;
-    border-radius:12px;
-    border:none;
-    background:#0f2a44;
-    color:white;
-}
+h1{text-align:center;color:#0077ff}
 button{
-    width:100%;
-    margin-top:12px;
-    padding:14px;
-    background:#4da3ff;
-    border:none;
-    border-radius:14px;
-    font-size:16px;
-    color:black;
-    cursor:pointer;
-    transition:transform 0.2s;
+width:100%;padding:12px;margin-top:10px;
+border:none;border-radius:14px;
+background:#0077ff;color:white;font-size:16px;
 }
-button:hover{transform:scale(1.03);}
-.res{
-    margin-top:18px;
-    padding:15px;
-    background:#0f2a44;
-    border-radius:12px;
-    animation:fade 0.6s;
+button:hover{transform:scale(1.03)}
+.personaje{
+width:60px;height:60px;border-radius:50%;
+background:#0077ff;margin:auto;
+box-shadow:0 0 15px #0077ff;
 }
-small{color:#9aa4b2;}
-.bar{
-    height:10px;
-    background:#111;
-    border-radius:8px;
-    overflow:hidden;
-    margin:6px 0;
+.gigante{
+width:100px;height:100px;border-radius:20px;
+background:#444;margin:auto;
+transition:.3s;
 }
-.fill{
-    height:100%;
-    background:#4da3ff;
+.vibrar{animation:vib .2s}
+@keyframes vib{
+0%{transform:translateX(-5px)}
+50%{transform:translateX(5px)}
 }
-@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1}}
+.barra{
+height:15px;background:#ddd;border-radius:10px;
+overflow:hidden;margin-top:10px;
+}
+.vida{
+height:100%;background:red;width:100%;
+transition:.4s;
+}
 </style>
 </head>
 <body>
 
 <div class="card">
 <h1>🧠 MENTISCOPE 474</h1>
-<small>Inspector 474 activo</small>
 
-<form method="post">
-<textarea name="frase" rows="4" placeholder="Expón tu afirmación con cuidado..."></textarea>
-<button>ANALIZAR</button>
-</form>
+<div class="personaje"></div>
+<p id="nivel"></p>
+<p id="pregunta"></p>
+<div id="ops"></div>
 
-{% if resultado %}
-<div class="res">
-<b>Veredicto:</b> {{resultado.estado}}<br>
-<b>Coherencia mental:</b>
-<div class="bar"><div class="fill" style="width:{{resultado.puntos}}%"></div></div>
-
-<small>Caso activo:</small><br>
-<i>{{resultado.caso}}</i><br><br>
-
-{% if resultado.alertas %}
-<b>Indicadores:</b> {{resultado.alertas}}<br>
-{% endif %}
-
-<b>Pregunta 474:</b><br>
-{{resultado.pregunta}}
+<div id="boss" style="display:none">
+<div class="gigante" id="gig"></div>
+<div class="barra"><div class="vida" id="vida"></div></div>
 </div>
-{% endif %}
 
-<hr>
-<small>Últimos registros</small>
-<ul>
-{% for h in historial %}
-<li>{{h.frase[:40]}}… → {{h.estado}}</li>
-{% endfor %}
-</ul>
-
+<p id="msg"></p>
 </div>
+
+<script>
+let estado;
+
+function cargar(){
+fetch("/estado").then(r=>r.json()).then(d=>{
+estado=d;
+document.getElementById("nivel").innerText="Nivel "+estado.nivel;
+if(estado.nivel==30){
+document.getElementById("boss").style.display="block";
+document.getElementById("vida").style.width=estado.vida+"%";
+}
+mostrar();
+});
+}
+
+function mostrar(){
+let p={{ preguntas|tojson }}[estado.nivel-1];
+pregunta.innerText=p.p;
+ops.innerHTML="";
+p.o.forEach((t,i)=>{
+let b=document.createElement("button");
+b.innerText=t;
+b.onclick=()=>responder(i);
+ops.appendChild(b);
+});
+}
+
+function responder(i){
+fetch("/responder",{method:"POST",
+headers:{'Content-Type':'application/json'},
+body:JSON.stringify({op:i})})
+.then(r=>r.json()).then(d=>{
+estado=d.estado;
+msg.innerText=d.ok?"✔ Correcto":"❌ Incorrecto";
+if(estado.nivel==30){
+vida.style.width=estado.vida+"%";
+gig.classList.add("vibrar");
+setTimeout(()=>gig.classList.remove("vibrar"),200);
+}
+cargar();
+});
+}
+
+cargar();
+</script>
 </body>
 </html>
 """
 
-# ===============================
-# 🚀 RUN (RENDER SAFE)
-# ===============================
+# =========================
+# ▶ RUN (RENDER)
+# =========================
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
