@@ -1,84 +1,134 @@
 from flask import Flask, request, render_template_string
-import json, os, random
+import random, json, os, time
 
 app = Flask(__name__)
 
-# ================== MEMORIA ==================
+# ===============================
+# 🧠 ARCHIVO DE MEMORIA
+# ===============================
 ARCHIVO = "mentiscope_memoria.json"
 
 if os.path.exists(ARCHIVO):
     with open(ARCHIVO, "r", encoding="utf-8") as f:
-        historial = json.load(f)
+        HISTORIAL = json.load(f)
 else:
-    historial = []
+    HISTORIAL = []
 
-# ================== LÓGICA 474 ==================
+# ===============================
+# 🧩 CASOS PSICOLÓGICOS AVANZADOS
+# ===============================
+CASOS = [
+    {
+        "caso": "Dijiste que llegaste tarde porque había tráfico, pero nadie más llegó tarde.",
+        "claves": ["porque", "tráfico"],
+        "riesgo": 15
+    },
+    {
+        "caso": "Afirmas que olvidaste algo importante, pero recuerdas muchos detalles.",
+        "claves": ["olvidé", "no recuerdo"],
+        "riesgo": 20
+    },
+    {
+        "caso": "Dices que siempre actúas bien, incluso cuando nadie te observa.",
+        "claves": ["siempre", "nunca"],
+        "riesgo": 25
+    },
+    {
+        "caso": "Cambias ligeramente tu historia cuando te hacen la misma pregunta.",
+        "claves": ["tal vez", "creo"],
+        "riesgo": 30
+    }
+]
+
 PALABRAS_SOSPECHOSAS = [
-    "creo", "tal vez", "no recuerdo", "más o menos",
-    "supongo", "quizás", "nunca", "siempre"
+    "creo", "tal vez", "quizás", "supongo",
+    "no recuerdo", "más o menos", "siempre", "nunca"
 ]
 
-PREGUNTAS_SEGUIMIENTO = [
-    "¿Puedes dar más detalles?",
-    "¿Cuándo ocurrió exactamente?",
-    "¿Alguien más puede confirmarlo?",
-    "¿Por qué estás seguro de eso?",
-    "¿Cambiarías algo de tu respuesta?"
+PREGUNTAS_PRESION = [
+    "¿Responderías igual si alguien pudiera comprobarlo?",
+    "¿Qué parte de tu historia cambiarías ahora?",
+    "¿Por qué esta respuesta te parece segura?",
+    "¿Qué pasaría si estuvieras equivocado?",
+    "¿Alguien más confirmaría esto sin dudar?"
 ]
 
-def analizar_frase(texto):
+# ===============================
+# 🔍 LÓGICA 474 AVANZADA
+# ===============================
+def analizar_mente(texto):
     texto_l = texto.lower()
-    puntos = 50
+    puntuacion = 74  # base 474 reducida
+    alertas = []
 
-    if len(texto) < 15:
-        puntos -= 15
-    if len(texto) > 120:
-        puntos -= 10
+    # Longitud
+    if len(texto) < 20:
+        puntuacion -= 15
+        alertas.append("respuesta breve")
+    if len(texto) > 160:
+        puntuacion -= 10
+        alertas.append("exceso de detalle")
 
-    sospechas = [p for p in PALABRAS_SOSPECHOSAS if p in texto_l]
-    puntos -= len(sospechas) * 5
+    # Palabras sospechosas
+    for p in PALABRAS_SOSPECHOSAS:
+        if p in texto_l:
+            puntuacion -= 6
+            alertas.append(p)
 
+    # Seguridad aparente
     if "porque" in texto_l or "ya que" in texto_l:
-        puntos += 10
+        puntuacion += 8
 
-    if puntos >= 70:
-        estado = "🟢 PROBABLEMENTE VERDAD"
-        mood = "calm"
-    elif puntos >= 45:
-        estado = "🟡 DUDOSO"
-        mood = "think"
+    # Casos mentales
+    caso = random.choice(CASOS)
+    for c in caso["claves"]:
+        if c in texto_l:
+            puntuacion -= caso["riesgo"]
+
+    # Estado final
+    if puntuacion >= 80:
+        estado = "🟢 COHERENCIA ALTA"
+    elif puntuacion >= 55:
+        estado = "🟡 INESTABILIDAD DETECTADA"
     else:
-        estado = "🔴 PROBABLEMENTE MENTIRA"
-        mood = "alert"
+        estado = "🔴 NARRATIVA COMPROMETIDA"
 
     return {
-        "puntos": max(0, min(100, puntos)),
+        "puntos": max(0, min(100, puntuacion)),
         "estado": estado,
-        "sospechas": sospechas,
-        "pregunta": random.choice(PREGUNTAS_SEGUIMIENTO),
-        "mood": mood
+        "alertas": list(set(alertas)),
+        "caso": caso["caso"],
+        "pregunta": random.choice(PREGUNTAS_PRESION)
     }
 
-# ================== RUTA ==================
+# ===============================
+# 🌐 RUTA PRINCIPAL
+# ===============================
 @app.route("/", methods=["GET", "POST"])
-def inicio():
+def index():
     resultado = None
 
     if request.method == "POST":
         frase = request.form.get("frase", "").strip()
+
         if frase:
-            resultado = analizar_frase(frase)
-            historial.append({
+            resultado = analizar_mente(frase)
+
+            HISTORIAL.append({
                 "frase": frase,
-                "resultado": resultado["estado"],
-                "puntos": resultado["puntos"]
+                "estado": resultado["estado"],
+                "puntos": resultado["puntos"],
+                "time": int(time.time())
             })
+
             with open(ARCHIVO, "w", encoding="utf-8") as f:
-                json.dump(historial, f, ensure_ascii=False, indent=2)
+                json.dump(HISTORIAL, f, ensure_ascii=False, indent=2)
 
-    return render_template_string(HTML, resultado=resultado, historial=historial[-5:])
+    return render_template_string(HTML, resultado=resultado, historial=HISTORIAL[-5:])
 
-# ================== HTML ==================
+# ===============================
+# 🎨 HTML NOIR PSICOLÓGICO
+# ===============================
 HTML = """
 <!DOCTYPE html>
 <html lang="es">
@@ -86,128 +136,102 @@ HTML = """
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>MENTISCOPE 474</title>
-
 <style>
 body{
-    background: linear-gradient(135deg,#e6f4ff,#ffffff);
-    font-family: Arial;
-    padding: 20px;
+    background:#0b0e13;
+    color:#e6e9ef;
+    font-family:Arial, sans-serif;
 }
-
 .card{
-    background: rgba(255,255,255,0.85);
-    border-radius: 18px;
-    padding: 20px;
-    max-width: 520px;
-    margin: auto;
-    box-shadow: 0 15px 40px rgba(0,0,0,0.12);
-    animation: fade 0.6s ease;
+    max-width:480px;
+    margin:40px auto;
+    padding:20px;
+    background:#1c2330;
+    border-radius:18px;
+    box-shadow:0 0 40px rgba(0,0,0,0.6);
+    animation:fade 0.8s;
 }
-
 h1{
     text-align:center;
-    color:#0077ff;
+    color:#4da3ff;
 }
-
 textarea{
     width:100%;
     padding:12px;
     border-radius:12px;
-    border:1px solid #aac;
-    resize:none;
+    border:none;
+    background:#0f2a44;
+    color:white;
 }
-
 button{
     width:100%;
+    margin-top:12px;
     padding:14px;
-    margin-top:10px;
+    background:#4da3ff;
     border:none;
     border-radius:14px;
-    background:#0077ff;
-    color:white;
     font-size:16px;
+    color:black;
+    cursor:pointer;
+    transition:transform 0.2s;
 }
-
+button:hover{transform:scale(1.03);}
 .res{
-    margin-top:15px;
-    padding:14px;
-    border-radius:14px;
-    background:#f1f8ff;
-    animation: slide 0.5s ease;
+    margin-top:18px;
+    padding:15px;
+    background:#0f2a44;
+    border-radius:12px;
+    animation:fade 0.6s;
 }
-
+small{color:#9aa4b2;}
 .bar{
-    height:12px;
-    background:#ddd;
-    border-radius:10px;
+    height:10px;
+    background:#111;
+    border-radius:8px;
     overflow:hidden;
-    margin:8px 0;
+    margin:6px 0;
 }
 .fill{
     height:100%;
-    background:linear-gradient(90deg,#00c6ff,#0072ff);
-    width:0%;
-    transition:width 0.8s ease;
+    background:#4da3ff;
 }
-
-.inspector{
-    text-align:center;
-    font-size:60px;
-    margin-bottom:10px;
-}
-
-@keyframes fade{
-    from{opacity:0;transform:scale(0.95)}
-    to{opacity:1;transform:scale(1)}
-}
-@keyframes slide{
-    from{opacity:0;transform:translateY(10px)}
-    to{opacity:1;transform:translateY(0)}
-}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1}}
 </style>
 </head>
-
 <body>
 
 <div class="card">
 <h1>🧠 MENTISCOPE 474</h1>
+<small>Inspector 474 activo</small>
 
 <form method="post">
-<textarea name="frase" rows="4" placeholder="Escribe tu afirmación..."></textarea>
-<button>Analizar</button>
+<textarea name="frase" rows="4" placeholder="Expón tu afirmación con cuidado..."></textarea>
+<button>ANALIZAR</button>
 </form>
 
 {% if resultado %}
 <div class="res">
+<b>Veredicto:</b> {{resultado.estado}}<br>
+<b>Coherencia mental:</b>
+<div class="bar"><div class="fill" style="width:{{resultado.puntos}}%"></div></div>
 
-<div class="inspector">
-{% if resultado.mood == "calm" %}🕵️‍♂️
-{% elif resultado.mood == "think" %}🤔
-{% else %}🚨{% endif %}
-</div>
+<small>Caso activo:</small><br>
+<i>{{resultado.caso}}</i><br><br>
 
-<b>{{resultado.estado}}</b><br>
-
-<div class="bar">
-  <div class="fill" style="width:{{resultado.puntos}}%"></div>
-</div>
-
-<b>Puntuación lógica:</b> {{resultado.puntos}} / 100<br>
-
-{% if resultado.sospechas %}
-<b>Palabras sospechosas:</b> {{resultado.sospechas}}<br>
+{% if resultado.alertas %}
+<b>Indicadores:</b> {{resultado.alertas}}<br>
 {% endif %}
 
-<b>Pregunta:</b> {{resultado.pregunta}}
-
+<b>Pregunta 474:</b><br>
+{{resultado.pregunta}}
 </div>
 {% endif %}
 
 <hr>
-<small>Últimos análisis:</small>
+<small>Últimos registros</small>
 <ul>
 {% for h in historial %}
-<li>{{h.frase}} → {{h.resultado}}</li>
+<li>{{h.frase[:40]}}… → {{h.estado}}</li>
 {% endfor %}
 </ul>
 
@@ -216,6 +240,9 @@ button{
 </html>
 """
 
-# ================== RUN ==================
+# ===============================
+# 🚀 RUN (RENDER SAFE)
+# ===============================
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
