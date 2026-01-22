@@ -4,53 +4,24 @@ import requests, os
 app = Flask(__name__)
 
 # =========================
-# 🟦 BUSCADOR EDUCATIVO
+# 🌐 FUNCIONES
 # =========================
-def buscar_duckduckgo(q):
-    """Obtiene resultados de DuckDuckGo instant answer API"""
-    url = "https://api.duckduckgo.com/"
-    params = {
-        "q": q,
-        "format": "json",
-        "t": "mentiscope"
-    }
-    r = requests.get(url, params=params)
-    if r.status_code != 200:
-        return []
-    d = r.json()
-    results = []
-    # Resultado principal
-    if d.get("AbstractURL"):
-        results.append({
-            "titulo": d.get("Heading",""),
-            "descripcion": d.get("AbstractText",""),
-            "url": d.get("AbstractURL",""),
-            "img": d.get("Image","")
-        })
-    # Otros relacionados
-    for r in d.get("RelatedTopics", []):
-        if "Text" in r and "FirstURL" in r:
-            results.append({
-                "titulo": r.get("Text",""),
-                "descripcion": r.get("Text",""),
-                "url": r.get("FirstURL",""),
-                "img": r.get("Icon",{}).get("URL","")
-            })
-    return results
-
-def buscar_wikipedia(q):
-    """Complementa con Wikipedia"""
+def buscar_wiki(q):
+    """Busca un término en Wikipedia y devuelve título, extracto e imagen."""
     url = f"https://es.wikipedia.org/api/rest_v1/page/summary/{q}"
-    r = requests.get(url)
-    if r.status_code != 200:
+    try:
+        r = requests.get(url, timeout=5)
+        if r.status_code != 200:
+            return None
+        d = r.json()
+        return {
+            "titulo": d.get("title",""),
+            "texto": d.get("extract","No se encontró información."),
+            "img": d.get("thumbnail",{}).get("source",""),
+            "url": d.get("content_urls",{}).get("desktop",{}).get("page","")
+        }
+    except:
         return None
-    d = r.json()
-    return {
-        "titulo": d.get("title",""),
-        "descripcion": d.get("extract",""),
-        "url": f"https://es.wikipedia.org/wiki/{q}",
-        "img": d.get("thumbnail",{}).get("source","")
-    }
 
 # =========================
 # 🌐 RUTAS
@@ -62,16 +33,11 @@ def inicio():
 @app.route("/buscar")
 def buscar():
     q = request.args.get("q","")
-    resultados = []
-    if q:
-        resultados.extend(buscar_duckduckgo(q))
-        wiki = buscar_wikipedia(q)
-        if wiki:
-            resultados.insert(0,wiki)
-    return jsonify(resultados)
+    r = buscar_wiki(q)
+    return jsonify(r if r else {})
 
 # =========================
-# 🎨 HTML + CSS + JS
+# 🎨 HTML + ANIMACIONES
 # =========================
 HTML = """
 <!DOCTYPE html>
@@ -79,102 +45,203 @@ HTML = """
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Buscador Escolar 🔍</title>
+<title>🎬 Cine & Anime Explorer</title>
 <style>
-body{
-    font-family: Arial;
-    background: linear-gradient(135deg,#e6f4ff,#ffffff);
+/* ---------------------- ESTILOS GENERALES ---------------------- */
+body {
     margin:0;
-    padding:20px;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg,#ffffff,#e0f0ff);
+    overflow-x: hidden;
 }
-h1{text-align:center;color:#0077ff;}
-.card{
-    background: rgba(255,255,255,0.7);
-    backdrop-filter: blur(10px);
+h1 {
+    text-align:center;
+    color:#0077ff;
+    animation: tituloAnim 2s ease-in-out infinite alternate;
+}
+@keyframes tituloAnim {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+    100% { transform: scale(1); }
+}
+/* ---------------------- CARD FLOTANTE ---------------------- */
+.card {
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(12px);
     border-radius: 16px;
-    padding: 20px;
-    max-width: 600px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    padding: 15px;
     margin: 20px auto;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    transition: transform 0.2s;
+    max-width: 400px;
+    transition: transform 0.3s, box-shadow 0.3s;
+    animation: flotar 3s ease-in-out infinite;
 }
-.card:hover{transform: translateY(-5px);}
-input{
-    width: 80%;
-    padding: 10px;
+.card:hover {
+    transform: translateY(-10px) scale(1.02);
+    box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+}
+@keyframes flotar {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+}
+/* ---------------------- BUSCADOR ---------------------- */
+input {
+    width: calc(100% - 24px);
+    padding:10px;
     border-radius: 10px;
     border:1px solid #aad;
+    margin-bottom:10px;
 }
-button{
-    padding: 10px 15px;
+button {
+    width:100%;
+    padding:12px;
+    margin-top:10px;
     border:none;
-    border-radius:10px;
+    border-radius:12px;
     background:#0077ff;
     color:white;
-    font-weight:bold;
+    font-size:16px;
+    cursor:pointer;
+    transition: transform 0.2s;
+}
+button:hover { transform: scale(1.05); }
+img {
+    width: 100%;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    transition: transform 0.3s;
+}
+img:hover { transform: scale(1.03); }
+/* ---------------------- CARRUSEL ---------------------- */
+.carousel {
+    display: flex;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    padding-bottom: 10px;
+}
+.carousel::-webkit-scrollbar {
+    height: 8px;
+}
+.carousel::-webkit-scrollbar-thumb {
+    background: #0077ff;
+    border-radius: 4px;
+}
+.carousel-item {
+    min-width: 120px;
+    margin-right: 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: transform 0.3s;
+}
+.carousel-item:hover {
+    transform: scale(1.1);
+}
+/* ---------------------- MODAL TRAILER ---------------------- */
+#trailerModal {
+    display:none;
+    position:fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background:rgba(0,0,0,0.85);
+    justify-content:center; align-items:center;
+    z-index:1000;
+}
+#trailerModal iframe {
+    width:80%; height:60%;
+    border-radius:12px;
+}
+#closeModal {
+    position:absolute; top:20px; right:20px;
+    background:#0077ff; color:white; border:none; padding:10px; border-radius:8px;
     cursor:pointer;
 }
-.result{
-    display:flex;
-    flex-direction: column;
-    margin-top: 15px;
-    gap: 10px;
-}
-.result div{
-    background: rgba(240,247,255,0.8);
-    border-radius:10px;
-    padding:10px;
-    display:flex;
-    gap:10px;
-    align-items:center;
-}
-.result img{
-    max-width:80px;
-    border-radius:6px;
-}
-a{color:#0077ff;text-decoration:none;font-weight:bold;}
+#closeModal:hover { transform: scale(1.1); }
 </style>
 </head>
 <body>
-<h1>Buscador Escolar 🔍</h1>
-<div class="card">
-<input id="q" placeholder="Escribe tu búsqueda...">
+<h1>🎬 Cine & Anime Explorer</h1>
+
+<!-- BUSCADOR -->
+<div class="card" id="buscador">
+<input id="q" placeholder="Busca tu anime o película...">
 <button onclick="buscar()">Buscar</button>
-<div class="result" id="res"></div>
+<h3 id="t"></h3>
+<img id="img" src="">
+<p id="txt"></p>
+<a id="wikiLink" href="" target="_blank"></a>
 </div>
 
+<!-- CARRUSEL -->
+<div class="card">
+<h3>Portadas Destacadas</h3>
+<div class="carousel" id="carousel">
+<!-- Miniaturas generadas por JS -->
+</div>
+</div>
+
+<!-- MODAL TRAILER -->
+<div id="trailerModal">
+<button id="closeModal" onclick="cerrarModal()">Cerrar</button>
+<iframe id="trailer" src="" frameborder="0" allowfullscreen></iframe>
+</div>
+
+<!-- MINI ALL MIGHT -->
+<img src="https://i.imgur.com/6i9I3Zp.png" style="width:60px; position:fixed; bottom:20px; right:20px; animation:flotar 3s ease-in-out infinite;" alt="Mini All Might">
+
 <script>
-function buscar(){
-    const query = document.getElementById("q").value;
-    fetch("/buscar?q="+encodeURIComponent(query))
-    .then(r=>r.json())
-    .then(data=>{
-        const res=document.getElementById("res");
-        res.innerHTML="";
-        if(data.length==0){
-            res.innerHTML="<p>No se encontraron resultados.</p>";
-            return;
-        }
-        data.forEach(d=>{
-            const div=document.createElement("div");
-            div.innerHTML = `
-                ${d.img?'<img src="'+d.img+'">':''}
-                <div>
-                    <a href="${d.url}" target="_blank">${d.titulo}</a>
-                    <p>${d.descripcion}</p>
-                </div>
-            `;
-            res.appendChild(div);
-        });
+const portadas = ["Naruto","Attack on Titan","One Piece","Your Name","Spirited Away","Demon Slayer"];
+
+function cargarCarrusel() {
+    const carousel = document.getElementById("carousel");
+    portadas.forEach(p => {
+        const imgEl = document.createElement("img");
+        imgEl.className="carousel-item";
+        imgEl.src = "https://source.unsplash.com/160x240/?" + encodeURIComponent(p);
+        imgEl.alt = p;
+        imgEl.onclick = ()=>abrirModal(p);
+        carousel.appendChild(imgEl);
     });
 }
+
+function buscar(){
+    const qVal = document.getElementById("q").value;
+    if(!qVal) return;
+
+    fetch("/buscar?q="+encodeURIComponent(qVal))
+    .then(r=>r.json())
+    .then(d=>{
+        t.innerText = d.titulo || "No encontrado";
+        txt.innerText = d.texto || "No hay información disponible.";
+        img.src = d.img || "";
+        wikiLink.href = d.url || "#";
+        wikiLink.innerText = d.url ? "Ir a Wikipedia" : "";
+        // Trailer en modal
+        document.getElementById("trailer").src = "https://www.youtube.com/embed?listType=search&list=" + encodeURIComponent(qVal+" trailer");
+        document.getElementById("trailerModal").style.display="flex";
+    });
+}
+
+function abrirModal(pelicula) {
+    document.getElementById("trailer").src = "https://www.youtube.com/embed?listType=search&list=" + encodeURIComponent(pelicula+" trailer");
+    document.getElementById("trailerModal").style.display="flex";
+}
+
+function cerrarModal() {
+    document.getElementById("trailerModal").style.display="none";
+    document.getElementById("trailer").src = "";
+}
+
+// Inicializar carrusel al cargar
+cargarCarrusel();
 </script>
+
 </body>
 </html>
 """
 
 # =========================
-# 🔹 RUN
+# 🚀 RUN
 # =========================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
