@@ -3,25 +3,39 @@ import requests, os
 
 app = Flask(__name__)
 
+TMDB_API_KEY = "TU_API_KEY_AQUI"  # <-- Pon tu API Key aquí
+
 # =========================
-# 🌐 FUNCIONES
+# 🌐 BUSCADOR TMDB
 # =========================
-def buscar_wiki(q):
-    """Busca un término en Wikipedia y devuelve título, extracto e imagen."""
-    url = f"https://es.wikipedia.org/api/rest_v1/page/summary/{q}"
-    try:
-        r = requests.get(url, timeout=5)
-        if r.status_code != 200:
-            return None
-        d = r.json()
-        return {
-            "titulo": d.get("title",""),
-            "texto": d.get("extract","No se encontró información."),
-            "img": d.get("thumbnail",{}).get("source",""),
-            "url": d.get("content_urls",{}).get("desktop",{}).get("page","")
-        }
-    except:
+def buscar_tmdb(query):
+    url = f"https://api.themoviedb.org/3/search/multi?api_key={TMDB_API_KEY}&language=es-ES&query={query}&page=1&include_adult=false"
+    r = requests.get(url)
+    if r.status_code != 200:
         return None
+    data = r.json()
+    results = []
+    for item in data.get("results", [])[:10]:  # top 10 resultados
+        # Portada
+        poster = f"https://image.tmdb.org/t/p/w300{item.get('poster_path')}" if item.get("poster_path") else ""
+        # Trailer
+        trailer_url = ""
+        # Obtener videos para cada película/anime
+        if item.get("media_type") in ["movie", "tv"]:
+            vid = requests.get(f"https://api.themoviedb.org/3/{item['media_type']}/{item['id']}/videos?api_key={TMDB_API_KEY}&language=es-ES")
+            if vid.status_code == 200:
+                vids = vid.json().get("results", [])
+                for v in vids:
+                    if v["type"] == "Trailer" and v["site"] == "YouTube":
+                        trailer_url = f"https://www.youtube.com/embed/{v['key']}"
+                        break
+        results.append({
+            "titulo": item.get("title") or item.get("name"),
+            "descripcion": item.get("overview","No hay descripción"),
+            "poster": poster,
+            "trailer": trailer_url
+        })
+    return results
 
 # =========================
 # 🌐 RUTAS
@@ -33,11 +47,12 @@ def inicio():
 @app.route("/buscar")
 def buscar():
     q = request.args.get("q","")
-    r = buscar_wiki(q)
-    return jsonify(r if r else {})
+    if not q: return jsonify([])
+    res = buscar_tmdb(q)
+    return jsonify(res or [])
 
 # =========================
-# 🎨 HTML + ANIMACIONES
+# 🎨 HTML + ESTILO
 # =========================
 HTML = """
 <!DOCTYPE html>
@@ -45,204 +60,74 @@ HTML = """
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🎬 Cine & Anime Explorer</title>
+<title>🎬 Cine y Anime - Flotante</title>
 <style>
-/* ---------------------- ESTILOS GENERALES ---------------------- */
-body {
-    margin:0;
+body{
+    margin:0; padding:0;
     font-family: Arial, sans-serif;
-    background: linear-gradient(135deg,#ffffff,#e0f0ff);
-    overflow-x: hidden;
+    background: linear-gradient(135deg,#e6f4ff,#ffffff);
 }
-h1 {
-    text-align:center;
-    color:#0077ff;
-    animation: tituloAnim 2s ease-in-out infinite alternate;
+.container{
+    padding:15px;
 }
-@keyframes tituloAnim {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.03); }
-    100% { transform: scale(1); }
+input{
+    width:70%; padding:10px; border-radius:10px; border:1px solid #aad;
 }
-/* ---------------------- CARD FLOTANTE ---------------------- */
-.card {
-    background: rgba(255,255,255,0.85);
-    backdrop-filter: blur(12px);
-    border-radius: 16px;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
-    padding: 15px;
-    margin: 20px auto;
-    max-width: 400px;
-    transition: transform 0.3s, box-shadow 0.3s;
-    animation: flotar 3s ease-in-out infinite;
+button{
+    padding:10px 15px; border:none; border-radius:10px;
+    background:#0077ff; color:white; margin-left:5px;
+    cursor:pointer; transition:0.3s;
 }
-.card:hover {
-    transform: translateY(-10px) scale(1.02);
-    box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+button:hover{transform:scale(1.05);}
+.cards{
+    display:flex; overflow-x:auto; gap:15px; padding-top:15px;
 }
-@keyframes flotar {
-    0% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
-    100% { transform: translateY(0px); }
+.card{
+    min-width:200px; background:rgba(255,255,255,0.8);
+    backdrop-filter:blur(10px); border-radius:15px;
+    padding:10px; flex-shrink:0; transition:transform 0.3s;
 }
-/* ---------------------- BUSCADOR ---------------------- */
-input {
-    width: calc(100% - 24px);
-    padding:10px;
-    border-radius: 10px;
-    border:1px solid #aad;
-    margin-bottom:10px;
-}
-button {
-    width:100%;
-    padding:12px;
-    margin-top:10px;
-    border:none;
-    border-radius:12px;
-    background:#0077ff;
-    color:white;
-    font-size:16px;
-    cursor:pointer;
-    transition: transform 0.2s;
-}
-button:hover { transform: scale(1.05); }
-img {
-    width: 100%;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    transition: transform 0.3s;
-}
-img:hover { transform: scale(1.03); }
-/* ---------------------- CARRUSEL ---------------------- */
-.carousel {
-    display: flex;
-    overflow-x: auto;
-    scroll-behavior: smooth;
-    padding-bottom: 10px;
-}
-.carousel::-webkit-scrollbar {
-    height: 8px;
-}
-.carousel::-webkit-scrollbar-thumb {
-    background: #0077ff;
-    border-radius: 4px;
-}
-.carousel-item {
-    min-width: 120px;
-    margin-right: 10px;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: transform 0.3s;
-}
-.carousel-item:hover {
-    transform: scale(1.1);
-}
-/* ---------------------- MODAL TRAILER ---------------------- */
-#trailerModal {
-    display:none;
-    position:fixed;
-    top:0; left:0;
-    width:100%; height:100%;
-    background:rgba(0,0,0,0.85);
-    justify-content:center; align-items:center;
-    z-index:1000;
-}
-#trailerModal iframe {
-    width:80%; height:60%;
-    border-radius:12px;
-}
-#closeModal {
-    position:absolute; top:20px; right:20px;
-    background:#0077ff; color:white; border:none; padding:10px; border-radius:8px;
-    cursor:pointer;
-}
-#closeModal:hover { transform: scale(1.1); }
+.card:hover{transform:translateY(-10px);}
+.card img{width:100%; border-radius:10px;}
+iframe{width:100%; height:150px; border:none; margin-top:5px;}
 </style>
 </head>
 <body>
-<h1>🎬 Cine & Anime Explorer</h1>
-
-<!-- BUSCADOR -->
-<div class="card" id="buscador">
-<input id="q" placeholder="Busca tu anime o película...">
+<div class="container">
+<h2>🎬 Buscador de Películas y Anime</h2>
+<input id="q" placeholder="Escribe el título...">
 <button onclick="buscar()">Buscar</button>
-<h3 id="t"></h3>
-<img id="img" src="">
-<p id="txt"></p>
-<a id="wikiLink" href="" target="_blank"></a>
-</div>
 
-<!-- CARRUSEL -->
-<div class="card">
-<h3>Portadas Destacadas</h3>
-<div class="carousel" id="carousel">
-<!-- Miniaturas generadas por JS -->
+<div class="cards" id="resultados"></div>
 </div>
-</div>
-
-<!-- MODAL TRAILER -->
-<div id="trailerModal">
-<button id="closeModal" onclick="cerrarModal()">Cerrar</button>
-<iframe id="trailer" src="" frameborder="0" allowfullscreen></iframe>
-</div>
-
-<!-- MINI ALL MIGHT -->
-<img src="https://i.imgur.com/6i9I3Zp.png" style="width:60px; position:fixed; bottom:20px; right:20px; animation:flotar 3s ease-in-out infinite;" alt="Mini All Might">
 
 <script>
-const portadas = ["Naruto","Attack on Titan","One Piece","Your Name","Spirited Away","Demon Slayer"];
-
-function cargarCarrusel() {
-    const carousel = document.getElementById("carousel");
-    portadas.forEach(p => {
-        const imgEl = document.createElement("img");
-        imgEl.className="carousel-item";
-        imgEl.src = "https://source.unsplash.com/160x240/?" + encodeURIComponent(p);
-        imgEl.alt = p;
-        imgEl.onclick = ()=>abrirModal(p);
-        carousel.appendChild(imgEl);
-    });
-}
-
 function buscar(){
-    const qVal = document.getElementById("q").value;
-    if(!qVal) return;
-
-    fetch("/buscar?q="+encodeURIComponent(qVal))
+    let q = document.getElementById("q").value;
+    if(!q) return;
+    fetch("/buscar?q="+encodeURIComponent(q))
     .then(r=>r.json())
-    .then(d=>{
-        t.innerText = d.titulo || "No encontrado";
-        txt.innerText = d.texto || "No hay información disponible.";
-        img.src = d.img || "";
-        wikiLink.href = d.url || "#";
-        wikiLink.innerText = d.url ? "Ir a Wikipedia" : "";
-        // Trailer en modal
-        document.getElementById("trailer").src = "https://www.youtube.com/embed?listType=search&list=" + encodeURIComponent(qVal+" trailer");
-        document.getElementById("trailerModal").style.display="flex";
+    .then(data=>{
+        let cont = document.getElementById("resultados");
+        cont.innerHTML="";
+        data.forEach(item=>{
+            let c = document.createElement("div");
+            c.className="card";
+            let poster = item.poster ? `<img src='${item.poster}'>` : "";
+            let trailer = item.trailer ? `<iframe src='${item.trailer}' allowfullscreen></iframe>` : "";
+            c.innerHTML = `<h3>${item.titulo}</h3>${poster}<p>${item.descripcion}</p>${trailer}`;
+            cont.appendChild(c);
+        });
     });
 }
-
-function abrirModal(pelicula) {
-    document.getElementById("trailer").src = "https://www.youtube.com/embed?listType=search&list=" + encodeURIComponent(pelicula+" trailer");
-    document.getElementById("trailerModal").style.display="flex";
-}
-
-function cerrarModal() {
-    document.getElementById("trailerModal").style.display="none";
-    document.getElementById("trailer").src = "";
-}
-
-// Inicializar carrusel al cargar
-cargarCarrusel();
 </script>
-
 </body>
 </html>
 """
 
 # =========================
-# 🚀 RUN
+# RUN
 # =========================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=port, debug=True)
