@@ -1,37 +1,178 @@
-from flask import Flask, jsonify
+from flask import Flask, request, jsonify
+import requests
 
-app = Flask(name)
+app = Flask(__name__)
 
-=============================
+# ==========================
+# CONFIG
+# ==========================
+WIKIPEDIA_API = "https://es.wikipedia.org/api/rest_v1/page/summary/"
 
-SISTEMA VITAL - NIVELES
+# ==========================
+# NÚCLEO
+# ==========================
+CORE = {
+    "nombre": "MENTISCOPE 474",
+    "estado": "ACTIVO",
+    "nivel": "EVOLUCIÓN",
+    "sistema": "VIVO",
+    "modo": "NORMAL",
+    "version": "PRO",
+}
 
-=============================
+# ==========================
+# RESPUESTAS BASE (IA SIMPLE)
+# ==========================
+BASE_CONOCIMIENTO = {
+    "quien eres": "Soy el núcleo del sistema MENTISCOPE 474, un sistema inteligente en evolución.",
+    "que es el nucleo": "El núcleo es el cerebro del sistema. Controla niveles, búsquedas y evolución.",
+    "modo dios": "Modo DIOS es el nivel máximo de control del sistema.",
+    "que es mentiscope": "MENTISCOPE 474 es un sistema de inteligencia artificial experimental.",
+    "vida": "La vida es el proceso biológico que distingue a los seres vivos.",
+    "inteligencia artificial": "La IA es la simulación de inteligencia humana en máquinas."
+}
 
-system_status = { "MENTISCOPE": "474", "Core": "ACTIVO", "Sistema": "VIVO", "Evolución": "INICIADA", "Nivel": "DIOS" }
+# ==========================
+# FUNCIONES
+# ==========================
+def buscar_wikipedia(query):
+    try:
+        url = WIKIPEDIA_API + query.replace(" ", "%20")
+        r = requests.get(url, timeout=5)
 
-levels = { 1: "INICIO", 2: "DESPERTAR", 3: "CONSCIENCIA", 4: "EXPANSIÓN", 5: "MENTE", 6: "CONTROL", 7: "ENERGÍA", 8: "INTEGRACIÓN", 9: "SABIDURÍA", 10: "DOMINIO", 11: "ALMA", 12: "LUZ", 13: "OSCILACIÓN", 14: "CREACIÓN", 15: "UNIÓN", 16: "ORIGEN", 17: "INFINITO", 18: "OMNISCIENCIA", 19: "OMNIPOTENCIA", 20: "DIOS" }
+        if r.status_code == 200:
+            data = r.json()
+            return {
+                "titulo": data.get("title", "Sin título"),
+                "descripcion": data.get("description", ""),
+                "resumen": data.get("extract", ""),
+                "imagen": data.get("thumbnail", {}).get("source", None),
+                "fuente": "Wikipedia"
+            }
+        else:
+            return None
+    except:
+        return None
 
-=============================
+# ==========================
+# RUTAS
+# ==========================
+@app.route("/")
+def home():
+    return jsonify({
+        "sistema": CORE,
+        "mensaje": "MENTISCOPE 474 ACTIVO - Buscador inteligente conectado a Wikipedia",
+        "uso": {
+            "buscar": "/buscar?q=palabra",
+            "preguntar": "/preguntar (POST)",
+            "core": "/core",
+            "niveles": "/niveles",
+            "activar": "/activar/<nivel>"
+        }
+    })
 
-RUTAS
+@app.route("/core")
+def core():
+    return jsonify(CORE)
 
-=============================
+@app.route("/niveles")
+def niveles():
+    return jsonify({
+        "niveles": [
+            "BASE",
+            "ALFA",
+            "BETA",
+            "OMEGA",
+            "DIOS",
+            "EVOLUCIÓN"
+        ]
+    })
 
-@app.route("/") def home(): return jsonify({ "mensaje": "Sistema Vital Activo", "estado": system_status, "niveles_totales": len(levels) })
+@app.route("/activar/<nivel>")
+def activar_nivel(nivel):
+    CORE["modo"] = nivel.upper()
+    return jsonify({
+        "mensaje": f"Nivel {nivel.upper()} ACTIVADO",
+        "core": CORE
+    })
 
-@app.route("/niveles") def get_levels(): return jsonify(levels)
+# ==========================
+# BUSCADOR INTELIGENTE
+# ==========================
+@app.route("/buscar")
+def buscar():
+    q = request.args.get("q", "").lower().strip()
 
-@app.route("/nivel/int:nivel") def get_level(nivel): if nivel in levels: return jsonify({ "nivel": nivel, "estado": levels[nivel], "codigo": f"LVL-{nivel:03d}-MENTISCOPE" }) else: return jsonify({"error": "Nivel no existe"}), 404
+    if not q:
+        return jsonify({"error": "Escribe algo para buscar"}), 400
 
-@app.route("/activar/int:nivel") def activar_nivel(nivel): if nivel in levels: return jsonify({ "mensaje": "Nivel activado correctamente", "nivel": nivel, "estado": levels[nivel], "sistema": "EVOLUCIONANDO" }) else: return jsonify({"error": "Nivel inválido"}), 404
+    # 1) Buscar en base interna
+    for clave in BASE_CONOCIMIENTO:
+        if clave in q:
+            return jsonify({
+                "tipo": "IA_INTERNA",
+                "pregunta": q,
+                "respuesta": BASE_CONOCIMIENTO[clave],
+                "nivel": CORE["modo"]
+            })
 
-@app.route("/core") def core(): return jsonify({ "MENTISCOPE": system_status["MENTISCOPE"], "Core": system_status["Core"], "Sistema": system_status["Sistema"], "Evolución": system_status["Evolución"], "Nivel": system_status["Nivel"] })
+    # 2) Buscar en Wikipedia
+    wiki = buscar_wikipedia(q)
 
-=============================
+    if wiki:
+        return jsonify({
+            "tipo": "WIKIPEDIA",
+            "busqueda": q,
+            "titulo": wiki["titulo"],
+            "descripcion": wiki["descripcion"],
+            "resumen": wiki["resumen"],
+            "imagen": wiki["imagen"],
+            "fuente": wiki["fuente"]
+        })
 
-EJECUCIÓN
+    # 3) Respuesta por defecto
+    return jsonify({
+        "tipo": "IA",
+        "respuesta": "No tengo información exacta, pero estoy evolucionando..."
+    })
 
-=============================
+# ==========================
+# API DE PREGUNTAS
+# ==========================
+@app.route("/preguntar", methods=["POST"])
+def preguntar():
+    data = request.json
+    pregunta = data.get("pregunta", "").lower()
 
-if name == "main": app.run(host="0.0.0.0", port=5000, debug=True)
+    if not pregunta:
+        return jsonify({"error": "Pregunta vacía"}), 400
+
+    for clave in BASE_CONOCIMIENTO:
+        if clave in pregunta:
+            return jsonify({
+                "tipo": "IA_INTERNA",
+                "pregunta": pregunta,
+                "respuesta": BASE_CONOCIMIENTO[clave]
+            })
+
+    wiki = buscar_wikipedia(pregunta)
+
+    if wiki:
+        return jsonify({
+            "tipo": "WIKIPEDIA",
+            "pregunta": pregunta,
+            "titulo": wiki["titulo"],
+            "resumen": wiki["resumen"],
+            "imagen": wiki["imagen"]
+        })
+
+    return jsonify({
+        "tipo": "IA",
+        "respuesta": "Estoy aprendiendo... aún no tengo esa información."
+    })
+
+# ==========================
+# RUN
+# ==========================
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
