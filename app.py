@@ -1,178 +1,244 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, render_template_string, jsonify
 import requests
+import os
+import random
 
 app = Flask(__name__)
 
-# ==========================
-# CONFIG
-# ==========================
-WIKIPEDIA_API = "https://es.wikipedia.org/api/rest_v1/page/summary/"
+# =========================
+# WIKIPEDIA API
+# =========================
 
-# ==========================
-# NÚCLEO
-# ==========================
-CORE = {
-    "nombre": "MENTISCOPE 474",
-    "estado": "ACTIVO",
-    "nivel": "EVOLUCIÓN",
-    "sistema": "VIVO",
-    "modo": "NORMAL",
-    "version": "PRO",
-}
-
-# ==========================
-# RESPUESTAS BASE (IA SIMPLE)
-# ==========================
-BASE_CONOCIMIENTO = {
-    "quien eres": "Soy el núcleo del sistema MENTISCOPE 474, un sistema inteligente en evolución.",
-    "que es el nucleo": "El núcleo es el cerebro del sistema. Controla niveles, búsquedas y evolución.",
-    "modo dios": "Modo DIOS es el nivel máximo de control del sistema.",
-    "que es mentiscope": "MENTISCOPE 474 es un sistema de inteligencia artificial experimental.",
-    "vida": "La vida es el proceso biológico que distingue a los seres vivos.",
-    "inteligencia artificial": "La IA es la simulación de inteligencia humana en máquinas."
-}
-
-# ==========================
-# FUNCIONES
-# ==========================
-def buscar_wikipedia(query):
+def buscar_wikipedia(q):
+    url = f"https://es.wikipedia.org/api/rest_v1/page/summary/{q}"
     try:
-        url = WIKIPEDIA_API + query.replace(" ", "%20")
         r = requests.get(url, timeout=5)
-
-        if r.status_code == 200:
-            data = r.json()
-            return {
-                "titulo": data.get("title", "Sin título"),
-                "descripcion": data.get("description", ""),
-                "resumen": data.get("extract", ""),
-                "imagen": data.get("thumbnail", {}).get("source", None),
-                "fuente": "Wikipedia"
-            }
-        else:
+        if r.status_code != 200:
             return None
+        d = r.json()
+        return {
+            "tipo": "Wikipedia",
+            "titulo": d.get("title", ""),
+            "texto": d.get("extract", "No se encontró información."),
+            "img": d.get("thumbnail", {}).get("source", "")
+        }
     except:
         return None
 
-# ==========================
+# =========================
+# JUEGO
+# =========================
+
+PALABRAS = [
+    "SISTEMA","MENTE","LOGICA","AZUL","BLANCO",
+    "INTELIGENCIA","NUCLEO","PODER","SABER","ENERGIA"
+]
+
+@app.route("/juego")
+def juego():
+    palabra = random.choice(PALABRAS)
+    letras = list(palabra)
+    random.shuffle(letras)
+    return jsonify({
+        "palabra": palabra,
+        "mezcla": letras
+    })
+
+# =========================
 # RUTAS
-# ==========================
+# =========================
+
 @app.route("/")
 def home():
-    return jsonify({
-        "sistema": CORE,
-        "mensaje": "MENTISCOPE 474 ACTIVO - Buscador inteligente conectado a Wikipedia",
-        "uso": {
-            "buscar": "/buscar?q=palabra",
-            "preguntar": "/preguntar (POST)",
-            "core": "/core",
-            "niveles": "/niveles",
-            "activar": "/activar/<nivel>"
-        }
-    })
+    return render_template_string(HTML)
 
-@app.route("/core")
-def core():
-    return jsonify(CORE)
-
-@app.route("/niveles")
-def niveles():
-    return jsonify({
-        "niveles": [
-            "BASE",
-            "ALFA",
-            "BETA",
-            "OMEGA",
-            "DIOS",
-            "EVOLUCIÓN"
-        ]
-    })
-
-@app.route("/activar/<nivel>")
-def activar_nivel(nivel):
-    CORE["modo"] = nivel.upper()
-    return jsonify({
-        "mensaje": f"Nivel {nivel.upper()} ACTIVADO",
-        "core": CORE
-    })
-
-# ==========================
-# BUSCADOR INTELIGENTE
-# ==========================
 @app.route("/buscar")
 def buscar():
-    q = request.args.get("q", "").lower().strip()
-
+    q = request.args.get("q", "").strip()
     if not q:
-        return jsonify({"error": "Escribe algo para buscar"}), 400
+        return jsonify({"error": "Escribe algo para buscar"})
 
-    # 1) Buscar en base interna
-    for clave in BASE_CONOCIMIENTO:
-        if clave in q:
-            return jsonify({
-                "tipo": "IA_INTERNA",
-                "pregunta": q,
-                "respuesta": BASE_CONOCIMIENTO[clave],
-                "nivel": CORE["modo"]
-            })
-
-    # 2) Buscar en Wikipedia
-    wiki = buscar_wikipedia(q)
-
+    wiki = buscar_wikipedia(q.replace(" ", "_"))
     if wiki:
-        return jsonify({
-            "tipo": "WIKIPEDIA",
-            "busqueda": q,
-            "titulo": wiki["titulo"],
-            "descripcion": wiki["descripcion"],
-            "resumen": wiki["resumen"],
-            "imagen": wiki["imagen"],
-            "fuente": wiki["fuente"]
-        })
+        return jsonify(wiki)
 
-    # 3) Respuesta por defecto
-    return jsonify({
-        "tipo": "IA",
-        "respuesta": "No tengo información exacta, pero estoy evolucionando..."
-    })
+    return jsonify({"error": "No se encontró información"})
 
-# ==========================
-# API DE PREGUNTAS
-# ==========================
-@app.route("/preguntar", methods=["POST"])
-def preguntar():
-    data = request.json
-    pregunta = data.get("pregunta", "").lower()
+# =========================
+# FRONTEND
+# =========================
 
-    if not pregunta:
-        return jsonify({"error": "Pregunta vacía"}), 400
+HTML = """
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema Inteligente</title>
 
-    for clave in BASE_CONOCIMIENTO:
-        if clave in pregunta:
-            return jsonify({
-                "tipo": "IA_INTERNA",
-                "pregunta": pregunta,
-                "respuesta": BASE_CONOCIMIENTO[clave]
-            })
+<style>
+body{
+    margin:0;
+    font-family:Arial;
+    background:linear-gradient(135deg,#e6f3ff,#ffffff);
+    padding:20px;
+}
+.container{
+    max-width:700px;
+    margin:auto;
+}
+.card{
+    background:white;
+    border-radius:18px;
+    padding:18px;
+    margin-top:15px;
+    box-shadow:0 10px 25px rgba(0,0,0,0.1);
+    transition:0.3s;
+}
+.card:hover{
+    transform:translateY(-6px);
+}
+h2{
+    color:#0066cc;
+}
+input{
+    width:70%;
+    padding:12px;
+    border-radius:12px;
+    border:1px solid #aac;
+    outline:none;
+}
+button{
+    padding:12px 16px;
+    border:none;
+    border-radius:12px;
+    background:#0066ff;
+    color:white;
+    cursor:pointer;
+}
+button:hover{
+    opacity:0.9;
+}
+img{
+    max-width:100%;
+    border-radius:14px;
+    margin-top:10px;
+}
+.title{
+    font-weight:bold;
+    color:#004a99;
+}
+.type{
+    font-size:12px;
+    color:#666;
+}
+.letra{
+    display:inline-block;
+    margin:6px;
+    padding:12px 15px;
+    background:#0066ff;
+    color:white;
+    border-radius:10px;
+    font-weight:bold;
+    cursor:pointer;
+}
+</style>
+</head>
 
-    wiki = buscar_wikipedia(pregunta)
+<body>
+<div class="container">
 
-    if wiki:
-        return jsonify({
-            "tipo": "WIKIPEDIA",
-            "pregunta": pregunta,
-            "titulo": wiki["titulo"],
-            "resumen": wiki["resumen"],
-            "imagen": wiki["imagen"]
-        })
+<div class="card">
+<h2>Buscador Inteligente</h2>
+<input id="q" placeholder="Busca cualquier cosa">
+<button onclick="buscar()">Buscar</button>
+</div>
 
-    return jsonify({
-        "tipo": "IA",
-        "respuesta": "Estoy aprendiendo... aún no tengo esa información."
-    })
+<div id="resultado"></div>
 
-# ==========================
+<div class="card">
+<h2>Juego: Busca Sonas</h2>
+<button onclick="cargarJuego()">Iniciar juego</button>
+<p id="pista"></p>
+<div id="letras"></div>
+<p id="respuesta"></p>
+</div>
+
+</div>
+
+<script>
+function buscar(){
+    let q = document.getElementById("q").value;
+    if(!q){
+        alert("Escribe algo");
+        return;
+    }
+    fetch("/buscar?q="+encodeURIComponent(q))
+    .then(r=>r.json())
+    .then(d=>{
+        let res = document.getElementById("resultado");
+        res.innerHTML="";
+        if(d.error){
+            res.innerHTML = "<div class='card'>"+d.error+"</div>";
+            return;
+        }
+        let c = document.createElement("div");
+        c.className="card";
+        c.innerHTML = `
+            <div class="type">${d.tipo}</div>
+            <div class="title">${d.titulo}</div>
+            ${d.img ? `<img src="${d.img}">` : ""}
+            <p>${d.texto}</p>
+        `;
+        res.appendChild(c);
+    });
+}
+
+let palabraReal = "";
+let seleccion = "";
+
+function cargarJuego(){
+    fetch("/juego")
+    .then(r=>r.json())
+    .then(d=>{
+        palabraReal = d.palabra;
+        seleccion = "";
+        document.getElementById("pista").innerText = "Ordena las letras:";
+        let l = document.getElementById("letras");
+        l.innerHTML = "";
+        d.mezcla.forEach(le=>{
+            let s = document.createElement("span");
+            s.className="letra";
+            s.innerText=le;
+            s.onclick=()=>seleccionar(le);
+            l.appendChild(s);
+        });
+        document.getElementById("respuesta").innerText="";
+    });
+}
+
+function seleccionar(le){
+    seleccion += le;
+    document.getElementById("respuesta").innerText = seleccion;
+    if(seleccion.length === palabraReal.length){
+        if(seleccion === palabraReal){
+            alert("Correcto: "+palabraReal);
+        }else{
+            alert("Incorrecto. Era: "+palabraReal);
+        }
+        seleccion="";
+    }
+}
+</script>
+
+</body>
+</html>
+"""
+
+# =========================
 # RUN
-# ==========================
+# =========================
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
