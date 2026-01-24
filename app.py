@@ -6,26 +6,38 @@ import random
 app = Flask(__name__)
 
 # =========================
-# WIKIPEDIA API
+# WIKIPEDIA API & PERSONALIDAD
 # =========================
 def buscar_wikipedia(q):
     try:
-        # Usamos la API de sumario de Wikipedia en español
+        # Buscamos en Wikipedia en español
         url = f"https://es.wikipedia.org/api/rest_v1/page/summary/{q.replace(' ', '_')}"
-        headers = {'User-Agent': 'SistemaInteligenteBot/1.0'}
+        headers = {'User-Agent': 'NoviaVirtualBot/1.0'}
         r = requests.get(url, headers=headers, timeout=5)
         
         if r.status_code != 200:
             return None
         
         d = r.json()
+        
+        # Lista de frases para dar personalidad
+        intros = [
+            f"¡Claro que sí! Estuve investigando sobre {q} para ti: ",
+            f"Cariño, aquí encontré lo que buscabas sobre {q}: ",
+            f"Me encanta que me preguntes cosas, mira lo que encontré sobre {q}: ",
+            f"Escucha, amor, esto es lo que dice Wikipedia sobre {q}: "
+        ]
+        
+        texto_original = d.get("extract", "No encontré nada específico.")
+        # Combinamos el intro de "novia virtual" con el dato de Wikipedia
+        texto_personalizado = random.choice(intros) + texto_original
+        
         return {
             "titulo": d.get("title", ""),
-            "texto": d.get("extract", "No se encontró información."),
-            # Extraemos la URL de la imagen si existe
+            "texto": texto_personalizado,
             "img": d.get("thumbnail", {}).get("source", "")
         }
-    except Exception:
+    except:
         return None
 
 # =========================
@@ -57,16 +69,16 @@ def home():
 def buscar():
     q = request.args.get("q","").strip()
     if not q:
-        return jsonify({"error":"Escribe algo para buscar"})
+        return jsonify({"error":"Amor, escribe algo para que pueda buscarlo por ti."})
     
     wiki = buscar_wikipedia(q)
     if wiki:
         return jsonify(wiki)
     
-    return jsonify({"error":"No se encontró información en Wikipedia"})
+    return jsonify({"error":"Lo siento mucho, no encontré información sobre eso en Wikipedia."})
 
 # =========================
-# FRONTEND (HTML + CSS + JS)
+# FRONTEND
 # =========================
 HTML = """
 <!DOCTYPE html>
@@ -74,99 +86,89 @@ HTML = """
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sistema Inteligente</title>
+<title>Mi IA Virtual</title>
 <style>
 body{
     margin:0;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    background:linear-gradient(135deg,#e3f2ff,#ffffff);
+    font-family:Arial, sans-serif;
+    background:linear-gradient(135deg,#ffe3f2,#ffffff);
     padding:20px;
-    min-height: 100vh;
 }
 .container{max-width:700px;margin:auto;}
 .card{
     background:white;
     border-radius:18px;
-    padding:20px;
+    padding:15px;
     margin-top:15px;
-    box-shadow:0 10px 25px rgba(0,0,0,0.1);
+    box-shadow:0 10px 25px rgba(0,0,0,0.05);
     transition:0.3s;
 }
-.card:hover{transform:translateY(-3px);}
 input{
-    width:65%;
+    width:70%;
     padding:12px;
     border-radius:12px;
-    border:1px solid #aad;
-    outline: none;
+    border:1px solid #ffadd2;
+    outline:none;
 }
 button{
-    padding:12px 20px;
+    padding:12px 16px;
     border:none;
     border-radius:12px;
-    background:#007bff;
+    background:#ff4da6;
     color:white;
     cursor:pointer;
-    font-weight: bold;
+    font-weight:bold;
 }
-button:hover{ background:#0056b3; }
 img{
-    width:100%;
-    max-height: 350px;
-    object-fit: contain;
+    max-width:100%;
     border-radius:14px;
-    margin: 15px 0;
-    background: #f8f9fa;
+    margin-top:10px;
+    display:block;
 }
 .letra{
     display:inline-block;
     margin:6px;
-    padding:12px 18px;
-    background:#007bff;
+    padding:12px 15px;
+    background:#ff4da6;
     color:white;
     border-radius:10px;
     font-weight:bold;
     cursor:pointer;
-    user-select: none;
 }
-.letra:active{ transform: scale(0.9); }
+h2, h3 { color: #d63384; }
 </style>
 </head>
 
 <body>
 <div class="container">
 
-    <div class="card">
-        <h2>Buscador Wikipedia</h2>
-        <div style="display:flex; gap:10px;">
-            <input id="q" placeholder="Ej: Albert Einstein, México, Python...">
-            <button onclick="buscar()">Buscar</button>
-        </div>
-    </div>
+<div class="card">
+<h2>Tu Asistente Virtual</h2>
+<p>Pregúntame lo que quieras, estaré feliz de ayudarte.</p>
+<input id="q" placeholder="¿Qué quieres saber hoy?">
+<button onclick="buscar()">Preguntar</button>
+</div>
 
-    <div id="resultado"></div>
+<div id="resultado"></div>
 
-    <div class="card">
-        <h2>Juego: Busca Sonas</h2>
-        <button onclick="cargarJuego()">Iniciar Juego</button>
-        <p id="pista"></p>
-        <div id="letras"></div>
-        <p>Tu respuesta: <strong id="respuesta"></strong></p>
-    </div>
+<div class="card">
+<h2>Juego: Busca Sonas</h2>
+<button onclick="cargarJuego()">Jugar conmigo</button>
+<p id="pista"></p>
+<div id="letras"></div>
+<p id="respuesta"></p>
+</div>
 
 </div>
 
 <script>
 function buscar(){
     let q = document.getElementById("q").value;
-    if(!q){alert("Escribe algo");return;}
-    
-    let res = document.getElementById("resultado");
-    res.innerHTML = "<div class='card'>Buscando...</div>";
-
+    if(!q){alert("Escribe algo, amor");return;}
     fetch("/buscar?q="+encodeURIComponent(q))
     .then(r=>r.json())
     .then(d=>{
+        let res=document.getElementById("resultado");
         res.innerHTML="";
         if(d.error){
             res.innerHTML="<div class='card'>"+d.error+"</div>";
@@ -176,13 +178,10 @@ function buscar(){
         c.className="card";
         c.innerHTML = `
             <h3>${d.titulo}</h3>
-            ${d.img ? `<img src="${d.img}" alt="Imagen de Wikipedia">` : "<i>No hay imagen disponible</i>"}
+            ${d.img ? `<img src="${d.img}">` : ""}
             <p>${d.texto}</p>
         `;
         res.appendChild(c);
-    })
-    .catch(err => {
-        res.innerHTML="<div class='card'>Error en la conexión</div>";
     });
 }
 
@@ -195,35 +194,30 @@ function cargarJuego(){
     .then(d=>{
         palabraReal = d.palabra;
         seleccion = "";
-        document.getElementById('pista').innerText = "Ordena las letras:";
+        document.getElementById('pista').innerText = "Ordena las letras para mí:";
         let l = document.getElementById('letras');
         l.innerHTML="";
         d.mezcla.forEach(le=>{
             let s=document.createElement('span');
             s.className='letra';
             s.innerText=le;
-            s.onclick=()=>seleccionar(le, s);
+            s.onclick=()=>seleccionar(le);
             l.appendChild(s);
         });
         document.getElementById('respuesta').innerText="";
     });
 }
 
-function seleccionar(le, elemento){
+function seleccionar(le){
     seleccion += le;
     document.getElementById('respuesta').innerText = seleccion;
-    elemento.style.opacity = "0.5";
-    elemento.style.pointerEvents = "none";
-
     if(seleccion.length === palabraReal.length){
-        setTimeout(() => {
-            if(seleccion === palabraReal){
-                alert("¡Correcto! Es " + palabraReal);
-            }else{
-                alert("Incorrecto. La palabra era: " + palabraReal);
-            }
-            cargarJuego();
-        }, 200);
+        if(seleccion === palabraReal){
+            alert("¡Lo lograste! Sabía que eras muy inteligente.");
+        }else{
+            alert("Casi... la palabra era: "+palabraReal);
+        }
+        seleccion="";
     }
 }
 </script>
@@ -232,11 +226,7 @@ function seleccionar(le, elemento){
 </html>
 """
 
-# =========================
-# RUN
-# =========================
 if __name__ == "__main__":
-    # Ajustado para Render u otros servicios de hosting
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
         
