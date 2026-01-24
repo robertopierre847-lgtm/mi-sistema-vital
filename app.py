@@ -1,232 +1,169 @@
-from flask import Flask, request, render_template_string, jsonify
-import requests
+from flask import Flask, render_template_string, jsonify
+from flask_socketio import SocketIO, emit
 import os
-import random
+import time
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = 'pixel_race_secret_123'
 
-# =========================
-# WIKIPEDIA API & PERSONALIDAD
-# =========================
-def buscar_wikipedia(q):
-    try:
-        # Buscamos en Wikipedia en español
-        url = f"https://es.wikipedia.org/api/rest_v1/page/summary/{q.replace(' ', '_')}"
-        headers = {'User-Agent': 'NoviaVirtualBot/1.0'}
-        r = requests.get(url, headers=headers, timeout=5)
-        
-        if r.status_code != 200:
-            return None
-        
-        d = r.json()
-        
-        # Lista de frases para dar personalidad
-        intros = [
-            f"¡Claro que sí! Estuve investigando sobre {q} para ti: ",
-            f"Cariño, aquí encontré lo que buscabas sobre {q}: ",
-            f"Me encanta que me preguntes cosas, mira lo que encontré sobre {q}: ",
-            f"Escucha, amor, esto es lo que dice Wikipedia sobre {q}: "
-        ]
-        
-        texto_original = d.get("extract", "No encontré nada específico.")
-        # Combinamos el intro de "novia virtual" con el dato de Wikipedia
-        texto_personalizado = random.choice(intros) + texto_original
-        
-        return {
-            "titulo": d.get("title", ""),
-            "texto": texto_personalizado,
-            "img": d.get("thumbnail", {}).get("source", "")
-        }
-    except:
-        return None
+# Configuración de SocketIO optimizada para servidores públicos
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
 
-# =========================
-# JUEGO: BUSCA SONAS
-# =========================
-PALABRAS = [
-    "ANIME","FLASK","AZUL","BLANCO","ROMA","NARUTO",
-    "DRAGON","BUSCADOR","WIKI","PYTHON","RENDER"
-]
+# --- CONFIGURACIÓN DEL JUEGO ---
+CANVAS_SIZE = 100  # Matriz de 100x100
+# Inicializamos el lienzo blanco
+lienzo = [["#ffffff" for _ in range(CANVAS_SIZE)] for _ in range(CANVAS_SIZE)]
+last_pixel_time = {} # Diccionario para controlar el tiempo por usuario
 
-@app.route("/juego")
-def juego():
-    palabra = random.choice(PALABRAS)
-    letras = list(palabra)
-    random.shuffle(letras)
-    return jsonify({
-        "palabra": palabra,
-        "mezcla": letras
-    })
+@app.route('/')
+def index():
+    return render_template_string(HTML_UI)
 
-# =========================
-# RUTAS
-# =========================
-@app.route("/")
-def home():
-    return render_template_string(HTML)
-
-@app.route("/buscar")
-def buscar():
-    q = request.args.get("q","").strip()
-    if not q:
-        return jsonify({"error":"Amor, escribe algo para que pueda buscarlo por ti."})
+@socketio.on('paint')
+def handle_paint(data):
+    user_id = data.get('user_id')
+    x = int(data.get('x'))
+    y = int(data.get('y'))
+    color = data.get('color')
+    power = data.get('power', 'normal')
     
-    wiki = buscar_wikipedia(q)
-    if wiki:
-        return jsonify(wiki)
+    now = time.time()
     
-    return jsonify({"error":"Lo siento mucho, no encontré información sobre eso en Wikipedia."})
+    # Validación de Cooldown: 3 segundos
+    if user_id in last_pixel_time and now - last_pixel_time[user_id] < 3:
+        return 
 
-# =========================
-# FRONTEND
-# =========================
-HTML = """
+    if 0 <= x < CANVAS_SIZE and 0 <= y < CANVAS_SIZE:
+        # Lógica de Poderes
+        if power == 'normal':
+            lienzo[y][x] = color
+            emit('update_pixel', {'x': x, 'y': y, 'color': color}, broadcast=True)
+        
+        elif power == 'bomba': # Explota área de 5x5
+            for i in range(y-2, y+3):
+                for j in range(x-2, x+3):
+                    if 0 <= i < CANVAS_SIZE and 0 <= j < CANVAS_SIZE:
+                        lienzo[i][j] = color
+                        emit('update_pixel', {'x': j, 'y': i, 'color': color}, broadcast=True)
+        
+        elif power == 'agujero': # Borra área de 7x7
+            for i in range(y-3, y+4):
+                for j in range(x-3, x+4):
+                    if 0 <= i < CANVAS_SIZE and 0 <= j < CANVAS_SIZE:
+                        lienzo[i][j] = "#ffffff"
+                        emit('update_pixel', {'x': j, 'y': i, 'color': "#ffffff"}, broadcast=True)
+
+        last_pixel_time[user_id] = now
+
+@socketio.on('connect')
+def on_connect():
+    # Al conectar, enviamos el estado actual del mural al nuevo jugador
+    emit('full_canvas', {'lienzo': lienzo})
+
+# --- INTERFAZ DE USUARIO (HTML/JS) ---
+HTML_UI = """
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mi IA Virtual</title>
-<style>
-body{
-    margin:0;
-    font-family:Arial, sans-serif;
-    background:linear-gradient(135deg,#ffe3f2,#ffffff);
-    padding:20px;
-}
-.container{max-width:700px;margin:auto;}
-.card{
-    background:white;
-    border-radius:18px;
-    padding:15px;
-    margin-top:15px;
-    box-shadow:0 10px 25px rgba(0,0,0,0.05);
-    transition:0.3s;
-}
-input{
-    width:70%;
-    padding:12px;
-    border-radius:12px;
-    border:1px solid #ffadd2;
-    outline:none;
-}
-button{
-    padding:12px 16px;
-    border:none;
-    border-radius:12px;
-    background:#ff4da6;
-    color:white;
-    cursor:pointer;
-    font-weight:bold;
-}
-img{
-    max-width:100%;
-    border-radius:14px;
-    margin-top:10px;
-    display:block;
-}
-.letra{
-    display:inline-block;
-    margin:6px;
-    padding:12px 15px;
-    background:#ff4da6;
-    color:white;
-    border-radius:10px;
-    font-weight:bold;
-    cursor:pointer;
-}
-h2, h3 { color: #d63384; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Pixel Race: Mural del Caos</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body { 
+            margin: 0; background: #0b0e14; color: white; 
+            font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center;
+            overflow-x: hidden;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px; padding: 15px; margin: 10px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            text-align: center;
+        }
+        canvas { 
+            background: white; border-radius: 5px; cursor: crosshair;
+            image-rendering: pixelated; touch-action: none;
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.3);
+            max-width: 95vw; height: auto;
+        }
+        .controls { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 15px; }
+        .btn {
+            padding: 12px 18px; border: none; border-radius: 12px; 
+            color: white; font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .btn-az { background: #007bff; }
+        .btn-rs { background: #ff4da6; }
+        .btn-ng { background: #333; border: 1px solid #555; }
+        .active { outline: 3px solid white; transform: scale(1.1); }
+        input[type="color"] { width: 50px; height: 45px; border: none; border-radius: 10px; cursor: pointer; }
+    </style>
 </head>
-
 <body>
-<div class="container">
+    <div class="glass-card">
+        <h2 style="margin:0; color:#00d2ff;">Pixel Race: Mural del Caos</h2>
+        <p style="font-size: 0.8em; opacity: 0.7;">1 píxel cada 3 segundos. ¡Gana la zona!</p>
+        <canvas id="canvas" width="1000" height="1000"></canvas>
+        
+        <div class="controls">
+            <input type="color" id="colorPicker" value="#ff0000">
+            <button class="btn btn-az active" onclick="setPower('normal', this)">Píxel</button>
+            <button class="btn btn-rs" onclick="setPower('bomba', this)">Bomba</button>
+            <button class="btn btn-ng" onclick="setPower('agujero', this)">Agujero</button>
+        </div>
+    </div>
 
-<div class="card">
-<h2>Tu Asistente Virtual</h2>
-<p>Pregúntame lo que quieras, estaré feliz de ayudarte.</p>
-<input id="q" placeholder="¿Qué quieres saber hoy?">
-<button onclick="buscar()">Preguntar</button>
-</div>
+    <script>
+        const socket = io();
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const userId = "user_" + Math.random().toString(36).substr(2, 9);
+        let selectedPower = 'normal';
 
-<div id="resultado"></div>
-
-<div class="card">
-<h2>Juego: Busca Sonas</h2>
-<button onclick="cargarJuego()">Jugar conmigo</button>
-<p id="pista"></p>
-<div id="letras"></div>
-<p id="respuesta"></p>
-</div>
-
-</div>
-
-<script>
-function buscar(){
-    let q = document.getElementById("q").value;
-    if(!q){alert("Escribe algo, amor");return;}
-    fetch("/buscar?q="+encodeURIComponent(q))
-    .then(r=>r.json())
-    .then(d=>{
-        let res=document.getElementById("resultado");
-        res.innerHTML="";
-        if(d.error){
-            res.innerHTML="<div class='card'>"+d.error+"</div>";
-            return;
+        function setPower(p, el) {
+            selectedPower = p;
+            document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+            el.classList.add('active');
         }
-        let c=document.createElement("div");
-        c.className="card";
-        c.innerHTML = `
-            <h3>${d.titulo}</h3>
-            ${d.img ? `<img src="${d.img}">` : ""}
-            <p>${d.texto}</p>
-        `;
-        res.appendChild(c);
-    });
-}
 
-let palabraReal = "";
-let seleccion = "";
-
-function cargarJuego(){
-    fetch('/juego')
-    .then(r=>r.json())
-    .then(d=>{
-        palabraReal = d.palabra;
-        seleccion = "";
-        document.getElementById('pista').innerText = "Ordena las letras para mí:";
-        let l = document.getElementById('letras');
-        l.innerHTML="";
-        d.mezcla.forEach(le=>{
-            let s=document.createElement('span');
-            s.className='letra';
-            s.innerText=le;
-            s.onclick=()=>seleccionar(le);
-            l.appendChild(s);
+        socket.on('full_canvas', (data) => {
+            data.lienzo.forEach((row, y) => {
+                row.forEach((color, x) => {
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x * 10, y * 10, 10, 10);
+                });
+            });
         });
-        document.getElementById('respuesta').innerText="";
-    });
-}
 
-function seleccionar(le){
-    seleccion += le;
-    document.getElementById('respuesta').innerText = seleccion;
-    if(seleccion.length === palabraReal.length){
-        if(seleccion === palabraReal){
-            alert("¡Lo lograste! Sabía que eras muy inteligente.");
-        }else{
-            alert("Casi... la palabra era: "+palabraReal);
+        socket.on('update_pixel', (data) => {
+            ctx.fillStyle = data.color;
+            ctx.fillRect(data.x * 10, data.y * 10, 10, 10);
+        });
+
+        canvas.addEventListener('mousedown', handleInput);
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleInput(e.touches[0]);
+        });
+
+        function handleInput(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const x = Math.floor(((e.clientX - rect.left) * scaleX) / 10);
+            const y = Math.floor(((e.clientY - rect.top) * scaleY) / 10);
+            const color = document.getElementById('colorPicker').value;
+
+            socket.emit('paint', { user_id: userId, x, y, color, power: selectedPower });
         }
-        seleccion="";
-    }
-}
-</script>
-
+    </script>
 </body>
 </html>
 """
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
-        
+if __name__ == '__main__':
+    # Detecta puerto automáticamente para servidores como Render o GitHub Codespaces
+    port = int(os.environ.get("PORT", 5000))
+    socketio.run(app, host='0.0.0.0', port=port)
