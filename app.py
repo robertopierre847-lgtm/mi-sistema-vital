@@ -12,7 +12,11 @@ def home():
     return render_template_string(HTML_TEST)
 
 @app.route('/preguntar')
-def preguntar():
+def preguntar(        chat_completion = client.chat.completions.create(
+            messages=[{"role": "user", "content": user_msg}],
+            model="llama-3.3-70b-versatile",", # Prueba con este si el otro falla
+)
+             ):
     user_msg = request.args.get('msg', '')
     try:
         # Aquí conectamos con el modelo Llama 3 de Groq
