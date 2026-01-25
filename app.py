@@ -7,28 +7,25 @@ app = Flask(__name__)
 # Configura tu llave de Groq aquí
 client = Groq(api_key="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")
 
-@app.route('/')
-def home():
-    return render_template_string(HTML_TEST)
-
 @app.route('/preguntar')
 def preguntar(        chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": user_msg}],
-            model="llama-3.3-70b-versatile",", # Prueba con este si el otro falla
+            model="llama-3.1-8b-instant", # Prueba con este si el otro falla
 )
              ):
     user_msg = request.args.get('msg', '')
     try:
-        # Aquí conectamos con el modelo Llama 3 de Groq
+        # Esto debe quedar exactamente así, con todas sus comas y paréntesis:
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": user_msg}],
-            model="llama3-8b-8192",
+            model="llama-3.1-8b-instant"
         )
+        
         respuesta = chat_completion.choices[0].message.content
         return jsonify({"res": respuesta})
     except Exception as e:
         return jsonify({"res": f"Error: {str(e)}"})
-
+    
 HTML_TEST = """
 <!DOCTYPE html>
 <html>
