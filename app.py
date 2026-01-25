@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 
 # CONFIGURACIÓN: Pon tu API Key de Groq aquí
-client = Groq(api_key="Groq(api_key="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")
+client = Groq(api_key="Groq(api_key="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"
 
 @app.route('/')
 def home():
