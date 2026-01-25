@@ -4,8 +4,10 @@ import os
 
 app = Flask(__name__)
 
-# CONFIGURACIÓN: Pon tu API Key de Groq aquí
-client = Groq(api_key="Groq(api_key="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"
+# --- CONFIGURACIÓN DE LA IA ---
+# REEMPLAZA ÚNICAMENTE EL TEXTO gsk_... POR TU CLAVE REAL
+# Mantén las comillas al principio y al final.
+client = Groq(api_key="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")
 
 @app.route('/')
 def home():
@@ -15,10 +17,10 @@ def home():
 def preguntar():
     user_msg = request.args.get('msg', '')
     if not user_msg:
-        return jsonify({"res": "Escribe algo primero..."})
-        
+        return jsonify({"res": "Escribe algo para comenzar..."})
+    
     try:
-        # Usamos el modelo más estable y rápido disponible
+        # Usamos un modelo que siempre está activo y es gratuito
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": user_msg}],
             model="llama-3.1-8b-instant"
@@ -26,130 +28,105 @@ def preguntar():
         respuesta = chat_completion.choices[0].message.content
         return jsonify({"res": respuesta})
     except Exception as e:
-        return jsonify({"res": f"Error: {str(e)}"})
+        return jsonify({"res": f"Error técnico: {str(e)}"})
 
-# DISEÑO EN CRISTAL AZUL Y BLANCO
+# --- DISEÑO CRISTALIZADO AZUL Y BLANCO ---
 HTML_UI = """
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IA Crystal Chat</title>
+    <title>Chat IA Crystal</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        body { 
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        body {
+            background: linear-gradient(135deg, #f0f9ff 0%, #bae6fd 100%);
             height: 100vh;
+            margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: 'Segoe UI', Roboto, sans-serif;
-            color: white;
-            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
-        /* Efecto de cristal */
-        .glass-card {
-            background: rgba(255, 255, 255, 0.05);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 24px;
-            padding: 30px;
+        .glass-box {
+            background: rgba(255, 255, 255, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.7);
+            border-radius: 25px;
+            padding: 2rem;
             width: 90%;
-            max-width: 450px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            max-width: 420px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
             text-align: center;
         }
-
-        h2 { color: #38bdf8; margin-bottom: 20px; font-weight: 300; letter-spacing: 1px; }
-
+        h2 { color: #0369a1; margin-bottom: 20px; font-weight: 300; }
         input {
             width: 100%;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.07);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 12px;
-            color: white;
-            font-size: 16px;
-            margin-bottom: 15px;
+            padding: 12px 20px;
+            margin: 8px 0;
+            display: inline-block;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.6);
+            box-sizing: border-box;
             outline: none;
-            transition: 0.3s;
+            color: #0c4a6e;
         }
-
-        input:focus { border-color: #38bdf8; background: rgba(255, 255, 255, 0.12); }
-
         button {
             width: 100%;
-            padding: 15px;
-            background: #38bdf8;
+            background-color: #0ea5e9;
+            color: white;
+            padding: 14px 20px;
+            margin: 10px 0;
             border: none;
-            border-radius: 12px;
-            color: #0f172a;
-            font-weight: bold;
-            font-size: 16px;
+            border-radius: 15px;
             cursor: pointer;
+            font-weight: bold;
             transition: 0.3s;
-            text-transform: uppercase;
         }
-
-        button:hover { background: #7dd3fc; transform: translateY(-2px); }
-
+        button:hover { background-color: #0284c7; transform: scale(1.02); }
         #output {
-            margin-top: 25px;
-            min-height: 100px;
-            max-height: 250px;
-            overflow-y: auto;
-            text-align: left;
+            margin-top: 20px;
             padding: 15px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 12px;
-            font-size: 14px;
-            line-height: 1.6;
-            color: #e2e8f0;
-            border-left: 3px solid #38bdf8;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            color: #075985;
+            min-height: 80px;
+            text-align: left;
+            font-size: 0.95em;
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
-
-        /* Scrollbar bonito */
-        #output::-webkit-scrollbar { width: 5px; }
-        #output::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.5); border-radius: 10px; }
     </style>
 </head>
 <body>
-
-    <div class="glass-card">
-        <h2>Crystal Chat IA</h2>
-        <input type="text" id="userInput" placeholder="Escribe tu mensaje aquí...">
-        <button onclick="enviar()">Enviar Mensaje</button>
-        <div id="output">¡Hola! Soy tu IA en la nube. ¿En qué puedo ayudarte hoy?</div>
+    <div class="glass-box">
+        <h2>Asistente Crystal</h2>
+        <input type="text" id="userInput" placeholder="Escribe tu duda aquí...">
+        <button onclick="enviar()">Enviar a la Nube</button>
+        <div id="output">Hola, ¿en qué puedo ayudarte hoy?</div>
     </div>
 
     <script>
         function enviar() {
-            const input = document.getElementById("userInput");
-            const output = document.getElementById("output");
-            const mensaje = input.value;
+            const inBox = document.getElementById("userInput");
+            const outBox = document.getElementById("output");
+            if (!inBox.value) return;
 
-            if (!mensaje) return;
-
-            output.innerHTML = "<i>Pensando...</i>";
-            input.value = "";
-
-            fetch(`/preguntar?msg=${encodeURIComponent(mensaje)}`)
-                .then(response => response.json())
+            outBox.innerHTML = "<i>Procesando en la nube...</i>";
+            
+            fetch(`/preguntar?msg=${encodeURIComponent(inBox.value)}`)
+                .then(res => res.json())
                 .then(data => {
-                    output.innerText = data.res;
+                    outBox.innerText = data.res;
+                    inBox.value = "";
                 })
-                .catch(error => {
-                    output.innerText = "Error: No se pudo conectar con la IA.";
-                    console.error(error);
+                .catch(err => {
+                    outBox.innerText = "Error: Verifica tu conexión u API Key.";
                 });
         }
-
-        // Permitir enviar con la tecla Enter
-        document.getElementById("userInput").addEventListener("keypress", function(e) {
+        // Enviar con la tecla Enter
+        document.getElementById("userInput").addEventListener("keypress", (e) => {
             if (e.key === "Enter") enviar();
         });
     </script>
@@ -158,6 +135,6 @@ HTML_UI = """
 """
 
 if __name__ == '__main__':
+    # Render asigna el puerto automáticamente
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port)
-            
