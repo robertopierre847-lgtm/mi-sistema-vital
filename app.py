@@ -5,8 +5,11 @@ import os
 app = Flask(__name__)
 
 # --- CONFIGURACIÓN DE LA IA ---
-# Pon tu clave aquí dentro de las comillas
+# Reemplaza TU_LLAVE_AQUI con tu clave gsk_...
 client = Groq(api_key="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")
+
+# Memoria de larga duración
+historial_chat = []
 
 @app.route('/')
 def home():
@@ -14,33 +17,53 @@ def home():
 
 @app.route('/preguntar')
 def preguntar():
+    global historial_chat
     user_msg = request.args.get('msg', '')
     if not user_msg:
-        return jsonify({"res": "Escribe algo para comenzar..."})
+        return jsonify({"res": "Dime algo, aquí estoy para ti..."})
     
     try:
+        # Si el historial está vacío, le damos una instrucción de personalidad
+        if len(historial_chat) == 0:
+            historial_chat.append({
+                "role": "system", 
+                "content": "Tu nombre es Ade. Eres una asistente virtual muy amable, cariñosa y atenta. Tu objetivo es ayudar al usuario en todo lo que necesite con mucha dulzura."
+            })
+
+        # Guardamos lo que dice el usuario
+        historial_chat.append({"role": "user", "content": user_msg})
+        
+        # Mantener historial (máximo 30 mensajes)
+        if len(historial_chat) > 30:
+            historial_chat = historial_chat[-30:]
+
+        # Llamada a Groq
         chat_completion = client.chat.completions.create(
-            messages=[{"role": "user", "content": user_msg}],
+            messages=historial_chat,
             model="llama-3.1-8b-instant"
         )
+        
         respuesta = chat_completion.choices[0].message.content
+        
+        # Guardamos la respuesta de Ade en memoria
+        historial_chat.append({"role": "assistant", "content": respuesta})
+        
         return jsonify({"res": respuesta})
     except Exception as e:
-        return jsonify({"res": f"Error técnico: {str(e)}"})
+        return jsonify({"res": f"Lo siento, hubo un error técnico: {str(e)}"})
 
-# --- DISEÑO CRISTALIZADO, FLOTANTE Y FIJO ---
+# --- DISEÑO CRISTALIZADO "ADE" ---
 HTML_UI = """
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IA Crystal Floating</title>
+    <title>Ade - Asistente Virtual</title>
     <style>
-        @keyframes float {
-            0% { transform: translateY(0px); }
+        @keyframes floating {
+            0%, 100% { transform: translateY(0px); }
             50% { transform: translateY(-15px); }
-            100% { transform: translateY(0px); }
         }
 
         body {
@@ -50,76 +73,96 @@ HTML_UI = """
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: 'Segoe UI', sans-serif;
-            overflow: hidden; /* Evita que la pantalla entera se mueva */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
         }
 
-        .glass-box {
+        .glass-panel {
             background: rgba(255, 255, 255, 0.4);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.7);
-            border-radius: 25px;
-            padding: 2rem;
+            border-radius: 40px;
+            padding: 35px;
             width: 90%;
-            max-width: 420px;
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+            max-width: 450px;
             text-align: center;
-            animation: float 4s ease-in-out infinite; /* EFECTO FLOTANTE */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            animation: floating 6s ease-in-out infinite;
         }
 
-        h2 { color: #0369a1; margin-bottom: 15px; font-weight: 300; }
+        h1 {
+            color: #0369a1;
+            font-size: 42px;
+            margin-bottom: 5px;
+            letter-spacing: -1px;
+        }
+
+        .status {
+            color: #0ea5e9;
+            font-size: 14px;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
 
         input {
             width: 100%;
-            padding: 12px;
-            margin: 8px 0;
+            padding: 20px;
+            font-size: 20px;
+            border-radius: 20px;
             border: 1px solid rgba(255, 255, 255, 0.5);
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.6);
-            box-sizing: border-box;
-            outline: none;
+            background: rgba(255, 255, 255, 0.8);
             color: #0c4a6e;
+            margin-bottom: 15px;
+            outline: none;
+            box-sizing: border-box;
         }
 
         button {
             width: 100%;
-            background-color: #0ea5e9;
-            color: white;
-            padding: 14px;
-            margin: 5px 0;
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
+            padding: 18px;
+            font-size: 20px;
             font-weight: bold;
-            box-shadow: 0 4px 15px rgba(14, 165, 233, 0.3);
+            color: white;
+            background: #0ea5e9;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(14, 165, 233, 0.3);
         }
 
-        /* CUADRO DE RESPUESTA CON SCROLL FIJO */
+        button:hover { background: #0284c7; transform: scale(1.02); }
+
         #output {
-            margin-top: 15px;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 15px;
+            margin-top: 25px;
+            padding: 25px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 25px;
             color: #075985;
-            height: 150px; /* Altura fija para que no crezca más */
-            overflow-y: auto; /* Permite scroll si el texto es largo */
+            height: 250px;
+            overflow-y: auto;
             text-align: left;
-            font-size: 0.9em;
-            border: 1px solid rgba(255, 255, 255, 0.3);
+            font-size: 22px; /* LETRA GRANDE */
+            line-height: 1.6;
+            border: 1px solid rgba(255, 255, 255, 0.4);
         }
 
-        /* Estilo para el scroll interno */
-        #output::-webkit-scrollbar { width: 4px; }
+        #output::-webkit-scrollbar { width: 5px; }
         #output::-webkit-scrollbar-thumb { background: #0ea5e9; border-radius: 10px; }
     </style>
 </head>
 <body>
-    <div class="glass-box">
-        <h2>IA Flotante</h2>
-        <input type="text" id="userInput" placeholder="Escribe tu duda aquí...">
-        <button onclick="enviar()">Enviar Mensaje</button>
-        <div id="output">¡Hola! Mi respuesta se quedará aquí dentro aunque sea muy larga, así siempre verás el botón de arriba.</div>
+
+    <div class="glass-panel">
+        <h1>Ade</h1>
+        <div class="status">● Conectada contigo</div>
+        
+        <input type="text" id="userInput" placeholder="Dime algo, cielo...">
+        <button onclick="enviar()">Hablar con Ade</button>
+        
+        <div id="output">¡Hola! Soy Ade. Estoy aquí para escucharte y ayudarte en lo que necesites con todo mi cariño. ¿De qué quieres hablar?</div>
     </div>
 
     <script>
@@ -128,18 +171,23 @@ HTML_UI = """
             const outBox = document.getElementById("output");
             if (!inBox.value) return;
 
-            outBox.innerHTML = "<i>Pensando...</i>";
+            outBox.innerHTML = "<i style='color: #0ea5e9;'>Ade está escribiendo...</i>";
             
             fetch(`/preguntar?msg=${encodeURIComponent(inBox.value)}`)
                 .then(res => res.json())
                 .then(data => {
                     outBox.innerText = data.res;
                     inBox.value = "";
+                    outBox.scrollTop = 0;
                 })
                 .catch(err => {
-                    outBox.innerText = "Error: Verifica tu clave.";
+                    outBox.innerText = "Lo siento, perdí la conexión un momento.";
                 });
         }
+
+        document.getElementById("userInput").addEventListener("keypress", (e) => {
+            if (e.key === "Enter") enviar();
+        });
     </script>
 </body>
 </html>
