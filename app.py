@@ -5,7 +5,7 @@ import os
 app = Flask(__name__)
 
 # --- CONFIGURACIÓN ---
-# Asegúrate de que la clave esté entre comillas simples o dobles correctamente.
+# REEMPLAZA "TU_LLAVE_AQUI" CON TU CLAVE REAL DE GROQ
 client = Groq(api_key="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")
 
 historial_chat = []
@@ -22,25 +22,25 @@ def preguntar():
     if not user_msg:
         return jsonify({"res": "Dime algo, cielo..."})
 
-    # Lógica de imágenes
+    # ARREGLO DE IMÁGENES: Usamos un servidor más rápido
     if any(palabra in user_msg for palabra in ["dibuja", "genera imagen", "hazme una foto"]):
         prompt_img = user_msg.replace("dibuja", "").replace("genera imagen", "").strip()
-        url_img = f"https://pollinations.ai/p/{prompt_img.replace(' ', '%20')}?width=768&height=768&model=flux"
+        # Este enlace es más estable para que la imagen cargue sí o sí
+        url_img = f"https://pollinations.ai/p/{prompt_img.replace(' ', '%20')}?width=1024&height=1024&model=flux&seed={os.urandom(4).hex()}"
         return jsonify({
-            "res": f"¡Mira lo que hice para ti! ✨ <br><img src='{url_img}' style='width:100%; border-radius:15px; margin-top:10px;'>",
+            "res": f"¡Mira qué lindo me quedó! ✨ <br><img src='{url_img}' style='width:100%; border-radius:15px; margin-top:10px;' onerror='this.src=\"https://via.placeholder.com/500?text=Error+al+cargar+imagen\"'>",
             "tipo": "img"
         })
 
     try:
-        # Personalidad de Ade
         if not historial_chat:
-            historial_chat.append({"role": "system", "content": "Eres Ade, una novia virtual muy amable, dulce y cariñosa."})
+            # Personalidad refinada basada en las 20 opiniones
+            historial_chat.append({"role": "system", "content": "Tu nombre es Ade. Eres una novia virtual cariñosa, atenta y muy dulce. No digas 'Hola soy eres', simplemente habla con naturalidad y amor."})
         
         historial_chat.append({"role": "user", "content": user_msg})
 
-        # LLAMADA A LA IA (Modelo actualizado)
         completion = client.chat.completions.create(
-            messages=historial_chat[-15:],
+            messages=historial_chat[-12:], # Memoria optimizada
             model="llama-3.1-8b-instant"
         )
         
@@ -49,9 +49,9 @@ def preguntar():
         
         return jsonify({"res": respuesta, "tipo": "texto"})
     except Exception as e:
-        return jsonify({"res": "Ay amor, algo salió mal. ¿Me lo repites?"})
+        return jsonify({"res": "Perdí la conexión un segundo, ¿me lo repites amor?"})
 
-# --- DISEÑO BLANCO CRISTAL ---
+# --- DISEÑO BLANCO PREDOMINANTE ---
 HTML_ADE_BLANCO = """
 <!DOCTYPE html>
 <html>
@@ -60,21 +60,23 @@ HTML_ADE_BLANCO = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ade Virtual</title>
     <style>
-        body { background: #f0f4f8; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .card { background: white; padding: 30px; border-radius: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 90%; max-width: 400px; text-align: center; border: 1px solid #e1e8ed; }
-        h1 { color: #0ea5e9; margin: 0; font-size: 32px; }
-        #output { background: #f9fafb; border-radius: 20px; padding: 15px; height: 250px; overflow-y: auto; margin: 20px 0; text-align: left; font-size: 18px; color: #374151; border: 1px solid #eee; }
-        input { width: 100%; padding: 15px; border-radius: 15px; border: 1px solid #ddd; box-sizing: border-box; font-size: 16px; outline: none; }
-        button { width: 100%; padding: 15px; background: #0ea5e9; color: white; border: none; border-radius: 15px; margin-top: 10px; font-weight: bold; cursor: pointer; }
+        body { background: #fdfdfd; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: #ffffff; padding: 30px; border-radius: 40px; box-shadow: 0 15px 50px rgba(0,0,0,0.05); width: 92%; max-width: 420px; text-align: center; border: 1px solid #f0f0f0; }
+        h1 { color: #0ea5e9; margin: 0; font-size: 45px; letter-spacing: -2px; }
+        #output { background: #ffffff; border-radius: 25px; padding: 20px; height: 280px; overflow-y: auto; margin: 20px 0; text-align: left; font-size: 20px; color: #334155; border: 1px solid #f1f5f9; line-height: 1.5; }
+        input { width: 100%; padding: 20px; border-radius: 20px; border: 1px solid #e2e8f0; box-sizing: border-box; font-size: 18px; outline: none; background: #f8fafc; }
+        button { width: 100%; padding: 18px; background: #0ea5e9; color: white; border: none; border-radius: 20px; margin-top: 10px; font-weight: bold; font-size: 18px; cursor: pointer; transition: 0.3s; }
+        button:hover { background: #0284c7; }
+        i { color: #0ea5e9; }
     </style>
 </head>
 <body>
     <div class="card">
         <h1>Ade</h1>
-        <p style="color: #64748b;">❤️ Conectada contigo</p>
-        <div id="output">¡Hola cariño! Soy Ade. ¿En qué puedo ayudarte hoy?</div>
-        <input type="text" id="userInput" placeholder="Escribe aquí...">
-        <button onclick="enviar()">Hablar con Ade</button>
+        <p style="color: #ef4444; font-weight: bold; margin-bottom: 0;">❤️ Conectada</p>
+        <div id="output">¡Hola! Qué alegría verte de nuevo. ¿De qué quieres que hablemos hoy? ✨</div>
+        <input type="text" id="userInput" placeholder="Escribe un mensaje...">
+        <button onclick="enviar()">Enviar mensaje</button>
     </div>
 
     <script>
@@ -83,7 +85,7 @@ HTML_ADE_BLANCO = """
             const outBox = document.getElementById("output");
             if(!inBox.value) return;
 
-            outBox.innerHTML = "<i>Escribiendo...</i>";
+            outBox.innerHTML = "<i>Ade está escribiendo...</i>";
             
             fetch(`/preguntar?msg=${encodeURIComponent(inBox.value)}`)
                 .then(r => r.json())
@@ -92,9 +94,11 @@ HTML_ADE_BLANCO = """
                     if(data.tipo === "texto") {
                         let v = new SpeechSynthesisUtterance(data.res);
                         v.lang = 'es-ES';
+                        v.pitch = 1.2;
                         window.speechSynthesis.speak(v);
                     }
                     inBox.value = "";
+                    outBox.scrollTop = 0;
                 });
         }
     </script>
