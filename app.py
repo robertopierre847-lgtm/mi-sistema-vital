@@ -1,123 +1,237 @@
-from flask import Flask, request, render_template_string, jsonify
+from flask import Flask, request, jsonify, render_template_string
 from groq import Groq
 import os
 
+# ==============================
+# CONFIG
+# ==============================
 app = Flask(__name__)
+client = Groq(api_key=os.environ.get("GROQ_API_KEY","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"))
 
-# --- CONFIGURACION ---
-# Reemplaza con tu llave de Groq
-client = Groq(api_key="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")
+# ==============================
+# MEMORIA GLOBAL
+# ==============================
+memory_db = {}
 
-historial_memoria = []
+def get_memory(user_id):
+    if user_id not in memory_db:
+        memory_db[user_id] = []
+    return memory_db[user_id]
 
-@app.route('/')
+# ==============================
+# IA CORE
+# ==============================
+def ade_ai(user_id, msg):
+    history = get_memory(user_id)
+
+    if not history:
+        history.append({
+            "role":"system",
+            "content":"Eres ADE, una IA femenina, amable, inteligente, profesional, moderna, con personalidad adaptable. Usa emojis moderadamente. Sé clara, útil y cercana."
+        })
+
+    history.append({"role":"user","content":msg})
+
+    chat = client.chat.completions.create(
+        model="llama-3.1-8b-instant",
+        messages=history[-15:]
+    )
+
+    res = chat.choices[0].message.content
+    history.append({"role":"assistant","content":res})
+    return res
+
+# ==============================
+# API
+# ==============================
+@app.route("/api/chat", methods=["POST"])
+def chat():
+    data = request.json
+    user_id = data.get("user_id","user1")
+    msg = data.get("msg","")
+    res = ade_ai(user_id,msg)
+    return jsonify({"response":res})
+
+# ==============================
+# WEB
+# ==============================
+@app.route("/")
 def home():
-    return render_template_string(HTML_SUPER_APP)
+    return render_template_string(APP_HTML)
 
-@app.route('/preguntar')
-def preguntar():
-    global historial_memoria
-    msg = request.args.get('msg', '').lower()
-    
-    try:
-        if not historial_memoria:
-            # Instrucciones corregidas: Permitimos emojis y eliminamos nombres propios
-            historial_memoria.append({
-                "role": "system", 
-                "content": "Eres Ade, una asistente virtual femenina y amable. Puedes usar emojis en tus respuestas para ser más expresiva. No conoces personalmente al usuario, así que no inventes historias pasadas sobre él."
-            })
-        
-        historial_memoria.append({"role": "user", "content": msg})
-
-        chat = client.chat.completions.create(
-            messages=historial_memoria[-10:],
-            model="llama-3.1-8b-instant"
-        )
-        
-        respuesta = chat.choices[0].message.content
-        historial_memoria.append({"role": "assistant", "content": respuesta})
-        
-        return jsonify({"res": respuesta})
-    except:
-        return jsonify({"res": "Hubo un problema con la respuesta. 😕"})
-
-# --- DISEÑO DE CRISTAL MINIMALISTA ---
-HTML_SUPER_APP = """
+# ==============================
+# HTML + CSS + JS
+# ==============================
+APP_HTML = """
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ade - Interfaz</title>
-    <style>
-        body { 
-            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d); 
-            height: 100vh; margin: 0; display: flex; justify-content: center; align-items: center;
-            font-family: sans-serif;
-        }
-        .glass-box {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            border-radius: 25px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            width: 90%; max-width: 400px; padding: 20px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            color: white;
-        }
-        #chat { 
-            height: 350px; overflow-y: auto; margin-bottom: 15px; padding: 10px;
-            background: rgba(0, 0, 0, 0.2); border-radius: 15px; 
-        }
-        input { 
-            width: 100%; padding: 12px; border-radius: 10px; border: none; outline: none;
-            background: rgba(255, 255, 255, 0.8); color: #333; margin-bottom: 10px; box-sizing: border-box;
-        }
-        button { 
-            width: 100%; padding: 12px; border-radius: 10px; border: none;
-            background: #ffffff; color: #b21f1f; font-weight: bold; cursor: pointer;
-        }
-    </style>
+<meta charset="UTF-8">
+<title>ADE IA Platform</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+    margin:0;
+    height:100vh;
+    background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    font-family:Arial;
+}
+
+/* LOADER */
+#loader{
+    position:fixed;
+    inset:0;
+    background:black;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    color:white;
+    z-index:999;
+}
+#loader img{
+    width:160px;
+    animation: float 2s ease-in-out infinite;
+}
+@keyframes float{
+    0%{transform:translateY(0)}
+    50%{transform:translateY(-15px)}
+    100%{transform:translateY(0)}
+}
+
+/* APP */
+.hidden{display:none;}
+
+.glass{
+    width:420px;
+    height:640px;
+    background:rgba(255,255,255,0.12);
+    backdrop-filter:blur(15px);
+    border-radius:25px;
+    padding:15px;
+    color:white;
+    display:flex;
+    flex-direction:column;
+    box-shadow:0 8px 40px rgba(0,0,0,0.5);
+}
+
+h1{text-align:center;margin:5px 0;}
+
+#chat{
+    flex:1;
+    overflow-y:auto;
+    padding:10px;
+    background:rgba(0,0,0,0.25);
+    border-radius:15px;
+    margin-bottom:10px;
+    font-size:14px;
+}
+
+.msg-user{color:#00f5ff;}
+.msg-ai{color:#ffffff;}
+
+.input-box{
+    display:flex;
+    gap:6px;
+}
+
+input{
+    flex:1;
+    padding:12px;
+    border-radius:10px;
+    border:none;
+    outline:none;
+}
+
+button{
+    border-radius:10px;
+    border:none;
+    padding:12px 16px;
+    background:#00f5ff;
+    font-weight:bold;
+    cursor:pointer;
+}
+</style>
 </head>
+
 <body>
-    <div class="glass-box">
-        <h2 style="text-align:center; margin-top:0;">Ade ✨</h2>
-        <div id="chat">Hola, ¿cómo puedo ayudarte hoy?</div>
-        <input type="text" id="userInput" placeholder="Escribe un mensaje...">
-        <button onclick="enviar()">Enviar</button>
+
+<!-- LOADER -->
+<div id="loader">
+    <!-- Mini All Might (URL externa para Render) -->
+    <img src="https://i.imgur.com/9QO4FQy.png">
+    <p>Cargando sistema ADE...</p>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+    <div class="glass">
+        <h1>ADE 🤖</h1>
+        <div id="chat">
+            <p class="msg-ai"><b>Ade:</b> Hola 👋 Soy ADE, tu asistente inteligente. ¿En qué te ayudo hoy?</p>
+        </div>
+        <div class="input-box">
+            <input id="input" placeholder="Habla con Ade...">
+            <button onclick="send()">Enviar</button>
+        </div>
     </div>
+</div>
 
-    <script>
-        function hablar(texto) {
-            window.speechSynthesis.cancel();
-            let msg = new SpeechSynthesisUtterance(texto);
-            msg.lang = 'es-ES';
-            msg.rate = 1.0; // Velocidad normal
-            msg.pitch = 1.2; // Tono ligeramente femenino
-            window.speechSynthesis.speak(msg);
-        }
+<script>
+// LOADER
+setTimeout(()=>{
+    document.getElementById("loader").style.display="none";
+    document.getElementById("app").classList.remove("hidden");
+},2500);
 
-        function enviar() {
-            const input = document.getElementById('userInput');
-            const chat = document.getElementById('chat');
-            if(!input.value) return;
-            
-            chat.innerHTML += "<p><b>Tú:</b> " + input.value + "</p>";
-            let texto = input.value;
-            input.value = "";
+// CHAT
+async function send(){
+    const input = document.getElementById("input");
+    const chat = document.getElementById("chat");
+    const text = input.value;
+    if(!text) return;
 
-            fetch('/preguntar?msg=' + encodeURIComponent(texto))
-                .then(r => r.json())
-                .then(data => {
-                    chat.innerHTML += "<p><b>Ade:</b> " + data.res + "</p>";
-                    chat.scrollTop = chat.scrollHeight;
-                    hablar(data.res);
-                });
-        }
-    </script>
+    chat.innerHTML += `<p class="msg-user"><b>Tú:</b> ${text}</p>`;
+    input.value="";
+
+    const res = await fetch("/api/chat",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({msg:text,user_id:"user1"})
+    });
+
+    const data = await res.json();
+    chat.innerHTML += `<p class="msg-ai"><b>Ade:</b> ${data.response}</p>`;
+    chat.scrollTop = chat.scrollHeight;
+
+    speak(data.response);
+}
+
+// VOZ
+function speak(text){
+    let msg = new SpeechSynthesisUtterance(text);
+    msg.lang="es-ES";
+    msg.rate=1;
+    msg.pitch=1.2;
+    speechSynthesis.speak(msg);
+}
+
+// ENTER
+document.getElementById("input").addEventListener("keydown",function(e){
+    if(e.key==="Enter") send();
+});
+</script>
+
 </body>
 </html>
 """
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
-    
+# ==============================
+# RUN
+# ==============================
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT",5000)))
