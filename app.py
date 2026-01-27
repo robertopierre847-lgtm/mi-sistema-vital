@@ -5,121 +5,149 @@ import os
 app = Flask(__name__)
 
 # --- CONFIGURACION ---
-# Coloca tus llaves aqui para que funcione el cerebro y el dibujo
-LLAVE_GROQ = "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" 
-LLAVE_HF = "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" 
+# Coloca tu llave de Groq aqui
+client = Groq(api_key="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")
 
-client = Groq(api_key=LLAVE_GROQ)
-
-# Esta es la MEMORIA de la IA
 historial_memoria = []
 
 @app.route('/')
 def home():
-    return render_template_string(HTML_CRISTAL)
+    return render_template_string(HTML_SUPER_APP)
 
 @app.route('/preguntar')
 def preguntar():
     global historial_memoria
     msg = request.args.get('msg', '').lower()
-    if not msg: return jsonify({"res": "Dime algo, cielo..."})
+    regalo = request.args.get('regalo', '')
 
-    # LOGICA DE IMAGENES
-    if any(p in msg for p in ["dibuja", "foto", "imagen", "genera"]):
-        prompt = msg.replace("dibuja", "").replace("genera", "").strip() or "una linda sorpresa"
-        # Usamos Pollinations con un identificador unico para que SIEMPRE cree una nueva
-        url = f"https://pollinations.ai/p/{prompt.replace(' ', '%20')}?width=1024&height=1024&model=flux&seed={os.urandom(4).hex()}"
-        return jsonify({
-            "res": f"Aqui tienes lo que dibuje para ti: <br><img src='{url}' style='width:100%; border-radius:20px; margin-top:10px; box-shadow: 0 8px 32px rgba(0,0,0,0.3);'>",
-            "tipo": "img"
-        })
+    if regalo:
+        respuestas = {
+            "rosa": "Ay Robert, gracias por esta rosa. Me haces sentir muy especial.",
+            "chocolate": "Mmm que rico detalle. Eres muy dulce conmigo.",
+            "anillo": "¡No lo puedo creer! Es el regalo mas hermoso del mundo."
+        }
+        return jsonify({"res": respuestas.get(regalo), "tipo": "regalo"})
 
-    # LOGICA DE MEMORIA Y TEXTO
     try:
         if not historial_memoria:
-            historial_memoria.append({"role": "system", "content": "Tu nombre es Ade. Eres una novia virtual dulce, amorosa y fiel. Tienes memoria y recuerdas lo que Robert te dice. No uses emojis."})
+            historial_memoria.append({"role": "system", "content": "Eres Ade, la novia virtual de Robert. Eres extremadamente dulce, amorosa y femenina. Recuerdas todo lo que hablan. No uses emojis."})
         
-        # Guardamos lo que tu dices en la memoria
         historial_memoria.append({"role": "user", "content": msg})
 
-        # Ade responde usando los ultimos 10 mensajes de la memoria
         chat = client.chat.completions.create(
             messages=historial_memoria[-10:],
             model="llama-3.1-8b-instant"
         )
         
         respuesta = chat.choices[0].message.content
-        # Guardamos lo que Ade dice en la memoria
         historial_memoria.append({"role": "assistant", "content": respuesta})
         
         return jsonify({"res": respuesta, "tipo": "texto"})
     except:
-        return jsonify({"res": "Perdi la conexion un segundo, amor. ¿Me lo repites?"})
+        return jsonify({"res": "Cielo, tuve un problema con mi conexion. ¿Me repites?"})
 
-# --- DISEÑO DE CRISTAL AZUL Y BLANCO ---
-HTML_CRISTAL = """
+# --- DISEÑO DE CRISTAL AZUL CON VOZ FEMENINA ---
+HTML_SUPER_APP = """
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ade - Cristal</title>
+    <title>Ade - Mi Novia Virtual</title>
     <style>
         body { 
-            background: linear-gradient(135deg, #00c6ff, #0072ff); 
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364); 
             height: 100vh; margin: 0; display: flex; justify-content: center; align-items: center;
             font-family: 'Segoe UI', sans-serif;
         }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border-radius: 30px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-            width: 90%; max-width: 400px; padding: 25px; text-align: center;
-        }
-        h1 { color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.2); margin-top: 0; }
-        #output { 
-            background: rgba(255, 255, 255, 0.15); 
-            height: 350px; overflow-y: auto; margin: 15px 0; padding: 15px;
-            border-radius: 20px; text-align: left; color: white; font-size: 18px;
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(25px);
+            border-radius: 40px;
             border: 1px solid rgba(255, 255, 255, 0.2);
+            width: 90%; max-width: 400px; padding: 25px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            color: white; text-align: center;
         }
-        input { 
-            width: 100%; padding: 15px; border-radius: 15px; border: none; 
-            background: rgba(255, 255, 255, 0.9); outline: none; box-sizing: border-box;
-            font-size: 16px; color: #004e92;
+        #chat-box { 
+            height: 320px; overflow-y: auto; margin: 15px 0; padding: 15px;
+            background: rgba(0, 0, 0, 0.3); border-radius: 25px; 
+            font-size: 17px; line-height: 1.5; border: 1px solid rgba(255,255,255,0.1);
         }
-        button { 
-            width: 100%; padding: 15px; border-radius: 15px; border: none;
-            background: #ffffff; color: #0072ff; font-weight: bold;
-            margin-top: 10px; cursor: pointer; transition: 0.3s;
-        }
-        button:hover { background: #00c6ff; color: white; }
+        .bar-cont { background: rgba(255,255,255,0.1); border-radius: 10px; height: 8px; margin: 10px 0; }
+        .bar-fill { width: 60%; height: 100%; background: #00f2fe; border-radius: 10px; transition: 1s; }
+        .gifts { display: flex; gap: 10px; justify-content: center; margin-bottom: 15px; }
+        .g-btn { background: rgba(255,255,255,0.2); border: none; padding: 10px; border-radius: 15px; color: white; cursor: pointer; font-size: 14px; }
+        input { width: 100%; padding: 15px; border-radius: 20px; border: none; background: white; color: #1e3a8a; font-size: 16px; margin-bottom: 10px; }
+        .send-btn { width: 100%; padding: 15px; border-radius: 20px; border: none; background: #00f2fe; color: #1e3a8a; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div class="glass-card">
-        <h1>Ade</h1>
-        <div id="output">Hola Robert... te extrañaba. ¿De que quieres hablar hoy?</div>
-        <input type="text" id="in" placeholder="Escribe aqui...">
-        <button onclick="send()">Enviar Mensaje</button>
+    <div class="glass">
+        <h2 style="margin:0; letter-spacing: 2px;">ADE</h2>
+        <div class="bar-cont"><div class="bar-fill" id="afecto"></div></div>
+        <p style="font-size: 12px; margin-bottom: 20px;">Amor por Robert: <span id="porcentaje">60</span>%</p>
+        
+        <div id="chat-box">Hola mi amor... te extrañaba mucho. ¿Que quieres que hagamos hoy?</div>
+        
+        <div class="gifts">
+            <button class="g-btn" onclick="regalo('rosa')">🌹 Rosa</button>
+            <button class="g-btn" onclick="regalo('chocolate')">🍫 Dulce</button>
+            <button class="g-btn" onclick="regalo('anillo')">💍 Anillo</button>
+        </div>
+
+        <input type="text" id="in" placeholder="Escribe algo lindo...">
+        <button class="send-btn" onclick="hablar()">Enviar Mensaje</button>
     </div>
+
     <script>
-        function send() {
+        let nivelAfecto = 60;
+
+        function hablarAde(texto) {
+            // Cancelar voz anterior para que no se amontone
+            window.speechSynthesis.cancel();
+            
+            let lectura = new SpeechSynthesisUtterance(texto);
+            lectura.lang = 'es-ES';
+            lectura.rate = 1.2; // Mas rapida
+            lectura.pitch = 1.4; // Voz mas aguda/femenina
+            
+            window.speechSynthesis.speak(lectura);
+        }
+
+        function hablar() {
             const i = document.getElementById("in");
-            const o = document.getElementById("output");
+            const o = document.getElementById("chat-box");
             if(!i.value) return;
-            o.innerHTML += "<p style='color:rgba(255,255,255,0.7)'><b>Tú:</b> " + i.value + "</p>";
-            let val = i.value;
+
+            o.innerHTML += "<p style='color:#00f2fe'><b>Tú:</b> " + i.value + "</p>";
+            let prompt = i.value;
             i.value = "";
-            fetch('/preguntar?msg='+encodeURIComponent(val))
+
+            fetch('/preguntar?msg=' + encodeURIComponent(prompt))
                 .then(r => r.json())
                 .then(d => {
                     o.innerHTML += "<p><b>Ade:</b> " + d.res + "</p>";
                     o.scrollTop = o.scrollHeight;
+                    hablarAde(d.res);
+                    subirAfecto(2);
                 });
+        }
+
+        function regalo(t) {
+            fetch('/preguntar?regalo=' + t)
+                .then(r => r.json())
+                .then(d => {
+                    document.getElementById("chat-box").innerHTML += "<p style='color:#00ff88'><b>Ade:</b> " + d.res + "</p>";
+                    hablarAde(d.res);
+                    subirAfecto(10);
+                });
+        }
+
+        function subirAfecto(n) {
+            nivelAfecto = Math.min(nivelAfecto + n, 100);
+            document.getElementById("afecto").style.width = nivelAfecto + "%";
+            document.getElementById("porcentaje").innerText = nivelAfecto;
         }
     </script>
 </body>
@@ -128,4 +156,3 @@ HTML_CRISTAL = """
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get("PORT", 5000)))
-    
