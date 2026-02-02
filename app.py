@@ -5,8 +5,9 @@ import os
 app = Flask(__name__)
 
 # ================= CONFIG =================
-# Recuerda configurar tu API KEY en Render o ponerla aquí directamente
-client = Groq(api_key=os.environ.get("GROQ_API_KEY", "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"))
+# Ponlo asi:
+client = Groq(api_key="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")
+
 
 # ================= MEMORIA =================
 memory = {}
