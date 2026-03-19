@@ -1,27 +1,24 @@
 from flask import Flask, request, jsonify, render_template_string
 import requests
-from groq import Groq
-import os
 import random
+import os
 
 app = Flask(__name__)
 
-# ================= CONFIG =================
-client = Groq(api_key="TU_API_KEY_GROQ_AQUI")
+# ================= RESPUESTAS SIMPLES =================
+def responder(msg):
+    msg = msg.lower()
 
-# ================= IA =================
-def ade_ai(msg):
-    try:
-        chat = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[
-                {"role": "system", "content": "Eres Ade ✨, una IA dulce, relajante, inteligente. Hablas bonito, claro y usas emojis suaves."},
-                {"role": "user", "content": msg}
-            ]
-        )
-        return chat.choices[0].message.content
-    except Exception as e:
-        return f"⚠️ Error IA: {str(e)}"
+    if "hola" in msg:
+        return "Hola 😊 ¿Cómo estás?"
+    elif "como estas" in msg:
+        return "Estoy muy bien ✨ gracias por preguntar"
+    elif "tu nombre" in msg:
+        return "Soy Ade 💎 tu asistente"
+    elif "gracias" in msg:
+        return "De nada 😊"
+    else:
+        return "No entendí bien 🤔 intenta buscar o jugar"
 
 # ================= WIKIPEDIA =================
 def buscar_wikipedia(query):
@@ -36,46 +33,44 @@ def buscar_wikipedia(query):
     except:
         return "Error buscando en Wikipedia", ""
 
-# ================= JUEGO TRIVIA =================
+# ================= JUEGO =================
 preguntas = [
     {"q": "¿Cuántos días tiene una semana?", "a": "7"},
-    {"q": "¿Qué planeta es el más grande?", "a": "jupiter"},
     {"q": "¿Color del cielo?", "a": "azul"},
-    {"q": "¿Cuánto es 5+5?", "a": "10"},
+    {"q": "¿Cuánto es 10+5?", "a": "15"},
+    {"q": "¿Capital de Francia?", "a": "paris"}
 ]
 
 nivel = 0
 
+# ================= API =================
 @app.route("/api/chat", methods=["POST"])
 def chat():
     global nivel
     data = request.json
     msg = data.get("msg","").lower()
 
-    # ===== MODO WIKIPEDIA =====
+    # WIKIPEDIA
     if msg.startswith("buscar"):
         query = msg.replace("buscar","").strip()
         texto, img = buscar_wikipedia(query)
         return jsonify({"response": texto, "img": img})
 
-    # ===== MODO JUEGO =====
+    # JUEGO
     if "jugar" in msg:
         nivel = 0
         return jsonify({"response": f"🎮 Nivel 1\n{preguntas[nivel]['q']}"})
 
-    if msg in [p["a"] for p in preguntas]:
-        if msg == preguntas[nivel]["a"]:
-            nivel += 1
-            if nivel >= len(preguntas):
-                return jsonify({"response": "🏆 ¡Ganaste todos los niveles!"})
-            return jsonify({"response": f"✅ Correcto!\nNivel {nivel+1}\n{preguntas[nivel]['q']}"})
+    if nivel < len(preguntas) and msg == preguntas[nivel]["a"]:
+        nivel += 1
+        if nivel >= len(preguntas):
+            return jsonify({"response": "🏆 Ganaste todos los niveles!"})
+        return jsonify({"response": f"✅ Correcto\nNivel {nivel+1}\n{preguntas[nivel]['q']}"})
 
-    # ===== IA NORMAL =====
-    res = ade_ai(msg)
-    return jsonify({"response": res})
+    # RESPUESTA SIMPLE
+    return jsonify({"response": responder(msg)})
 
-
-# ================= FRONTEND =================
+# ================= HTML =================
 @app.route("/")
 def home():
     return render_template_string("""
@@ -83,7 +78,7 @@ def home():
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Ade Crystal ✨</title>
+<title>Ade 💎</title>
 
 <style>
 body{
@@ -92,21 +87,20 @@ body{
     display:flex;
     justify-content:center;
     align-items:center;
-    background: linear-gradient(135deg,#74ebd5,#ACB6E5);
+    background: linear-gradient(135deg,#6dd5ed,#2193b0);
     font-family:sans-serif;
 }
 
 .glass{
-    width:95%;
+    width:90%;
     max-width:420px;
     height:90vh;
-    backdrop-filter: blur(25px);
-    background: rgba(255,255,255,0.25);
+    backdrop-filter: blur(20px);
+    background: rgba(255,255,255,0.3);
     border-radius:30px;
     padding:20px;
     display:flex;
     flex-direction:column;
-    box-shadow:0 0 40px rgba(0,0,0,0.2);
 }
 
 #chat{
@@ -115,7 +109,7 @@ body{
 }
 
 .msg{
-    padding:12px;
+    padding:10px;
     margin:10px;
     border-radius:15px;
 }
@@ -126,32 +120,31 @@ body{
 }
 
 .ai{
-    background:rgba(0,150,255,0.2);
+    background:rgba(0,150,255,0.3);
 }
 
 img{
     max-width:100%;
     border-radius:10px;
-    margin-top:5px;
+}
+
+.bar{
+    display:flex;
 }
 
 input{
     flex:1;
-    border:none;
     padding:10px;
+    border:none;
     border-radius:20px;
 }
 
 button{
     background:#00aaff;
-    color:white;
     border:none;
+    color:white;
     padding:10px;
     border-radius:20px;
-}
-
-.bar{
-    display:flex;
 }
 </style>
 </head>
@@ -164,10 +157,9 @@ button{
 <div id="chat"></div>
 
 <div class="bar">
-<input id="txt" placeholder="Habla o escribe...">
+<input id="txt" placeholder="Escribe...">
 <button onclick="send()">Enviar</button>
 </div>
-
 </div>
 
 <script>
@@ -199,13 +191,6 @@ async function send(){
     chat.innerHTML+=html;
 
     chat.scrollTop=chat.scrollHeight;
-
-    // VOZ
-    let speech=new SpeechSynthesisUtterance(data.response);
-    speech.lang="es-ES";
-    speech.rate=0.9;
-    speech.pitch=1.2;
-    speechSynthesis.speak(speech);
 }
 </script>
 
@@ -214,4 +199,4 @@ async function send(){
 """)
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000)
