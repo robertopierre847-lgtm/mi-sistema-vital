@@ -1,202 +1,245 @@
 from flask import Flask, request, jsonify, render_template_string
 import requests
 import random
-import os
 
 app = Flask(__name__)
 
-# ================= RESPUESTAS SIMPLES =================
-def responder(msg):
-    msg = msg.lower()
-
-    if "hola" in msg:
-        return "Hola 😊 ¿Cómo estás?"
-    elif "como estas" in msg:
-        return "Estoy muy bien ✨ gracias por preguntar"
-    elif "tu nombre" in msg:
-        return "Soy Ade 💎 tu asistente"
-    elif "gracias" in msg:
-        return "De nada 😊"
-    else:
-        return "No entendí bien 🤔 intenta buscar o jugar"
-
-# ================= WIKIPEDIA =================
-def buscar_wikipedia(query):
-    try:
-        url = f"https://es.wikipedia.org/api/rest_v1/page/summary/{query}"
-        res = requests.get(url).json()
-
-        texto = res.get("extract", "No encontré información 😢")
-        imagen = res.get("thumbnail", {}).get("source", "")
-
-        return texto, imagen
-    except:
-        return "Error buscando en Wikipedia", ""
-
-# ================= JUEGO =================
-preguntas = [
-    {"q": "¿Cuántos días tiene una semana?", "a": "7"},
-    {"q": "¿Color del cielo?", "a": "azul"},
-    {"q": "¿Cuánto es 10+5?", "a": "15"},
-    {"q": "¿Capital de Francia?", "a": "paris"}
+# Base de datos de preguntas para el juego (se pueden expandir)
+banco_preguntas = [
+    {"q": "¿Quién es la madre de tu madre?", "a": "abuela", "cat": "Familia"},
+    {"q": "¿Cómo se llama el hijo de tu hermano?", "a": "sobrino", "cat": "Familia"},
+    {"q": "¿Qué parentesco tiene contigo el hermano de tu padre?", "a": "tio", "cat": "Familia"},
+    {"q": "¿Cuál es el planeta más grande?", "a": "jupiter", "cat": "Ciencia"},
+    {"q": "¿En qué país están las pirámides de Giza?", "a": "egipto", "cat": "Cultura"},
+    {"q": "¿Qué animal dice miau?", "a": "gato", "cat": "Animales"},
+    {"q": "¿Cuál es el color de las esmeraldas?", "a": "verde", "cat": "General"}
 ]
 
-nivel = 0
+# Estado del juego global (Nota: En producción usar una DB o sesión)
+estado_usuario = {"nivel": 1}
 
-# ================= API =================
-@app.route("/api/chat", methods=["POST"])
-def chat():
-    global nivel
-    data = request.json
-    msg = data.get("msg","").lower()
+def obtener_respuesta_wikipedia(query):
+    try:
+        url = f"https://es.wikipedia.org/api/rest_v1/page/summary/{query.replace(' ', '_')}"
+        headers = {'User-Agent': 'AdeOS/1.0 (contact@example.com)'}
+        res = requests.get(url, headers=headers).json()
+        
+        if "extract" in res:
+            texto = res["extract"]
+            img = res.get("thumbnail", {}).get("source", "")
+            return texto, img
+        return "No encontré información sobre eso. Intenta con otra palabra.", ""
+    except:
+        return "Error de conexión con el servidor de conocimiento.", ""
 
-    # WIKIPEDIA
-    if msg.startswith("buscar"):
-        query = msg.replace("buscar","").strip()
-        texto, img = buscar_wikipedia(query)
-        return jsonify({"response": texto, "img": img})
-
-    # JUEGO
-    if "jugar" in msg:
-        nivel = 0
-        return jsonify({"response": f"🎮 Nivel 1\n{preguntas[nivel]['q']}"})
-
-    if nivel < len(preguntas) and msg == preguntas[nivel]["a"]:
-        nivel += 1
-        if nivel >= len(preguntas):
-            return jsonify({"response": "🏆 Ganaste todos los niveles!"})
-        return jsonify({"response": f"✅ Correcto\nNivel {nivel+1}\n{preguntas[nivel]['q']}"})
-
-    # RESPUESTA SIMPLE
-    return jsonify({"response": responder(msg)})
-
-# ================= HTML =================
 @app.route("/")
-def home():
+def index():
     return render_template_string("""
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<title>Ade 💎</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ade OS 💎</title>
+    <style>
+        :root {
+            --glass: rgba(255, 255, 255, 0.15);
+            --border: rgba(255, 255, 255, 0.2);
+        }
 
-<style>
-body{
-    margin:0;
-    height:100vh;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    background: linear-gradient(135deg,#6dd5ed,#2193b0);
-    font-family:sans-serif;
-}
+        body {
+            margin: 0;
+            height: 100vh;
+            background: url('https://images.unsplash.com/photo-1464802686167-b939a6910659?auto=format&fit=crop&q=80') no-repeat center center fixed;
+            background-size: cover;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
 
-.glass{
-    width:90%;
-    max-width:420px;
-    height:90vh;
-    backdrop-filter: blur(20px);
-    background: rgba(255,255,255,0.3);
-    border-radius:30px;
-    padding:20px;
-    display:flex;
-    flex-direction:column;
-}
+        /* Efecto Flotante */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+            100% { transform: translateY(0px); }
+        }
 
-#chat{
-    flex:1;
-    overflow:auto;
-}
+        .window {
+            width: 450px;
+            height: 650px;
+            background: var(--glass);
+            backdrop-filter: blur(25px) saturate(180%);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid var(--border);
+            border-radius: 25px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            animation: float 5s ease-in-out infinite;
+            overflow: hidden;
+        }
 
-.msg{
-    padding:10px;
-    margin:10px;
-    border-radius:15px;
-}
+        .header {
+            padding: 20px;
+            text-align: center;
+            color: white;
+            border-bottom: 1px solid var(--border);
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
 
-.user{
-    background:white;
-    text-align:right;
-}
+        #chat-area {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            scrollbar-width: none;
+        }
 
-.ai{
-    background:rgba(0,150,255,0.3);
-}
+        .bubble {
+            margin-bottom: 15px;
+            padding: 12px 18px;
+            border-radius: 18px;
+            max-width: 85%;
+            font-size: 14px;
+            line-height: 1.5;
+            animation: fadeIn 0.3s ease;
+        }
 
-img{
-    max-width:100%;
-    border-radius:10px;
-}
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
 
-.bar{
-    display:flex;
-}
+        .ai { background: rgba(0, 122, 255, 0.3); color: white; align-self: flex-start; border-bottom-left-radius: 2px; }
+        .user { background: rgba(255, 255, 255, 0.8); color: #333; margin-left: auto; border-bottom-right-radius: 2px; }
 
-input{
-    flex:1;
-    padding:10px;
-    border:none;
-    border-radius:20px;
-}
+        .wiki-img { width: 100%; border-radius: 10px; margin-top: 10px; border: 1px solid var(--border); }
 
-button{
-    background:#00aaff;
-    border:none;
-    color:white;
-    padding:10px;
-    border-radius:20px;
-}
-</style>
+        .input-bar {
+            padding: 20px;
+            display: flex;
+            gap: 10px;
+            background: rgba(0,0,0,0.1);
+        }
+
+        input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: rgba(255,255,255,0.1);
+            color: white;
+            outline: none;
+        }
+
+        input::placeholder { color: rgba(255,255,255,0.6); }
+
+        button {
+            padding: 10px 20px;
+            border-radius: 12px;
+            border: none;
+            background: #00d2ff;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+
+        button:hover { background: #3a7bd5; transform: scale(1.05); }
+
+        .status-tag {
+            font-size: 10px;
+            background: rgba(0,0,0,0.2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            margin-bottom: 5px;
+            display: inline-block;
+        }
+    </style>
 </head>
-
 <body>
 
-<div class="glass">
-<h2>Ade 💎</h2>
-
-<div id="chat"></div>
-
-<div class="bar">
-<input id="txt" placeholder="Escribe...">
-<button onclick="send()">Enviar</button>
-</div>
+<div class="window">
+    <div class="header">ADE OS v2.0 💎</div>
+    <div id="chat-area">
+        <div class="bubble ai">Bienvenido al Sistema Operativo Ade. <br><br>• Escribe "buscar [tema]" para Wikipedia.<br>• Escribe "jugar" para iniciar el desafío de 666 niveles.</div>
+    </div>
+    <div class="input-bar">
+        <input type="text" id="userInput" placeholder="Escribe un comando..." onkeypress="handleKey(event)">
+        <button onclick="process()">Enviar</button>
+    </div>
 </div>
 
 <script>
-async function send(){
-    let input=document.getElementById("txt");
-    let val=input.value;
-    if(!val) return;
+    async function process() {
+        const input = document.getElementById("userInput");
+        const chat = document.getElementById("chat-area");
+        const val = input.value.trim();
+        if(!val) return;
 
-    let chat=document.getElementById("chat");
-    chat.innerHTML+=`<div class="msg user">${val}</div>`;
+        chat.innerHTML += `<div class="bubble user">${val}</div>`;
+        input.value = "";
 
-    input.value="";
+        const response = await fetch("/api/logic", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({msg: val})
+        });
 
-    let res=await fetch("/api/chat",{
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({msg:val})
-    });
-
-    let data=await res.json();
-
-    let html=`<div class="msg ai">${data.response}`;
-
-    if(data.img){
-        html+=`<br><img src="${data.img}">`;
+        const data = await response.json();
+        
+        let aiHtml = `<div class="bubble ai">`;
+        if(data.type === "juego") aiHtml += `<span class="status-tag">NIVEL ${data.nivel}/666</span><br>`;
+        aiHtml += data.response;
+        if(data.img) aiHtml += `<img src="${data.img}" class="wiki-img">`;
+        aiHtml += `</div>`;
+        
+        chat.innerHTML += aiHtml;
+        chat.scrollTop = chat.scrollHeight;
     }
 
-    html+=`</div>`;
-    chat.innerHTML+=html;
-
-    chat.scrollTop=chat.scrollHeight;
-}
+    function handleKey(e) { if(e.key === "Enter") process(); }
 </script>
 
 </body>
 </html>
-""")
+    """)
+
+@app.route("/api/logic", methods=["POST"])
+def logic():
+    data = request.json
+    msg = data.get("msg", "").lower().strip()
+    
+    # LÓGICA DE BÚSQUEDA WIKIPEDIA
+    if msg.startswith("buscar"):
+        tema = msg.replace("buscar", "").strip()
+        texto, imagen = obtener_respuesta_wikipedia(tema)
+        return jsonify({"response": texto, "img": imagen, "type": "wiki"})
+
+    # LÓGICA DEL JUEGO
+    if "jugar" in msg or "nivel" in msg:
+        pregunta = random.choice(banco_preguntas)
+        return jsonify({
+            "response": f"Pregunta de {pregunta['cat']}: {pregunta['q']}",
+            "nivel": estado_usuario["nivel"],
+            "type": "juego",
+            "ans": pregunta['a'] # Guardamos respuesta para comparar
+        })
+
+    # LÓGICA DE RESPUESTA A PREGUNTAS
+    # (Simulación de niveles: si responde bien, sube nivel)
+    for p in banco_preguntas:
+        if msg == p['a']:
+            estado_usuario["nivel"] += 1
+            nueva = random.choice(banco_preguntas)
+            return jsonify({
+                "response": f"✨ ¡Correcto! Avanzas al siguiente nivel.\n\nSiguiente: {nueva['q']}",
+                "nivel": estado_usuario["nivel"],
+                "type": "juego"
+            })
+
+    return jsonify({"response": "No reconozco ese comando. Intenta 'buscar' algo o 'jugar'.", "type": "chat"})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000, debug=True)
+                                  
