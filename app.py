@@ -3,22 +3,6 @@ from flask import Flask, request, jsonify, render_template_string
 
 app = Flask(__name__)
 
-# Base de datos de "Dominicanismos"
-diccionario_rd = {
-    "klk": "Saludo común, acortamiento de '¿Qué es lo que hay?'.",
-    "vaina": "Cosa, objeto o situación (se usa para todo).",
-    "manso": "Estar tranquilo o en paz.",
-    "concho": "Transporte público colectivo.",
-    "heavy": "Algo que está muy bien o excelente."
-}
-
-def wiki_search(query):
-    try:
-        url = f"https://es.wikipedia.org/api/rest_v1/page/summary/{query.replace(' ', '_')}"
-        res = requests.get(url, headers={'User-Agent': 'AdeOS/4.0'}).json()
-        return res.get("extract", "No encontré info, intenta otra palabra."), res.get("thumbnail", {}).get("source", "")
-    except: return "Error de red.", ""
-
 @app.route("/")
 def home():
     return render_template_string("""
@@ -27,110 +11,123 @@ def home():
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ade Vital OS Pro 💎</title>
+    <title>Ade Vital OS 💎</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    
     <style>
-        :root { --bg: #021b79; --glass: rgba(255, 255, 255, 0.1); --accent: #00d2ff; }
+        :root { --accent: #00d2ff; --bg: #050a15; }
         body { 
-            margin:0; height:100vh; background: var(--bg); font-family: 'Segoe UI', sans-serif;
-            display:flex; align-items:center; justify-content:center; color: white; transition: 0.5s;
+            margin:0; height:100vh; background: var(--bg); color: white;
+            font-family: 'Segoe UI', sans-serif; display:flex; justify-content:center; align-items:center;
+            overflow: hidden;
         }
-        .os-window {
-            width:90%; max-width:450px; height:85vh; background: var(--glass);
-            backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2);
-            border-radius:30px; display:flex; flex-direction:column; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+
+        .glass {
+            width:90%; max-width:420px; height:85vh; 
+            background: rgba(10, 20, 40, 0.6);
+            backdrop-filter: blur(20px); border: 2px solid rgba(0, 210, 255, 0.3);
+            border-radius:35px; display:flex; flex-direction:column; overflow:hidden;
+            box-shadow: 0 0 50px rgba(0, 210, 255, 0.2);
+            animation: backInDown 1s ease-out;
         }
-        #screen { flex:1; padding:20px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; }
-        .bubble { padding:12px; border-radius:15px; font-size:0.9rem; max-width:85%; background:rgba(255,255,255,0.1); }
-        .user { align-self:flex-end; background: var(--accent); color:#001; font-weight:bold; }
+
+        #screen { flex:1; padding:20px; overflow-y:auto; display:flex; flex-direction:column; gap:15px; scrollbar-width: none; }
+
+        /* Estilo de Mensajes */
+        .msg { padding:14px; border-radius:20px; font-size:0.9rem; max-width:85%; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         
-        .dock { padding:10px; background:rgba(0,0,0,0.3); display:grid; grid-template-columns: repeat(3, 1fr); gap:5px; border-radius:0 0 30px 30px; }
-        .btn { background:rgba(255,255,255,0.1); border:none; color:white; padding:8px; border-radius:10px; cursor:pointer; font-size:0.7rem; }
-        .btn:hover { background: var(--accent); color:black; }
+        .ade { 
+            background: rgba(255, 255, 255, 0.1); align-self: flex-start; 
+            border-left: 5px solid var(--accent);
+            animation: backInLeft 0.6s; 
+        }
+
+        .user { 
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5); color: white; 
+            align-self: flex-end; border-bottom-right-radius: 2px;
+            animation: backInRight 0.5s;
+        }
+
+        /* Estilo de la Mascota del Sistema (Avatar) */
+        .avatar-container {
+            text-align: center; padding: 10px 0;
+            border-bottom: 1px solid rgba(0, 210, 255, 0.2);
+        }
+        .ade-avatar {
+            width: 60px; height: 60px;
+            background: radial-gradient(circle, #fff 0%, var(--accent) 50%, #001 100%);
+            border-radius: 50%; display: inline-block;
+            box-shadow: 0 0 20px var(--accent);
+            /* Animación de flotación constante */
+            animation: floatAvatar 3s ease-in-out infinite;
+        }
+        @keyframes floatAvatar {
+            0%, 100% { transform: translateY(0) scale(1); box-shadow: 0 0 20px var(--accent); }
+            50% { transform: translateY(-10px) scale(1.05); box-shadow: 0 0 35px var(--accent); }
+        }
+
+        .input-area { padding:15px; display:flex; gap:10px; background: rgba(0,0,0,0.4); }
+        input { flex:1; background:transparent; border: 1px solid var(--accent); border-radius:20px; padding:12px; color:white; outline:none; }
         
-        .input-box { display:flex; padding:15px; gap:10px; }
-        input { flex:1; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.3); border-radius:15px; padding:10px; color:white; outline:none; }
-        #pomodoro { text-align:center; color:#ffea00; font-weight:bold; font-size:1.2rem; display:none; }
+        .btn-gamer {
+            background: rgba(255,255,255,0.05); border: 1px solid var(--accent);
+            color: white; padding: 10px; border-radius: 15px; cursor: pointer;
+            font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px;
+            transition: 0.3s; width: 100%;
+        }
+        .btn-gamer:hover { background: var(--accent); color: black; transform: scale(1.05); box-shadow: 0 0 15px var(--accent); }
     </style>
 </head>
 <body>
 
-<div class="os-window">
-    <div style="padding:15px; text-align:center;">Ade Vital OS Pro 💎</div>
-    <div id="pomodoro">25:00</div>
+<div class="glass">
+    <div class="avatar-container">
+        <div class="ade-avatar"></div>
+        <div style="font-size: 0.8rem; color: var(--accent); margin-top: 5px;">ADE VITAL</div>
+    </div>
+
     <div id="screen">
-        <div class="bubble">SISTEMA LISTO. 🚀<br>Usa el buscador o los módulos del panel inferior.</div>
+        <div class="msg ade">Módulos vitales cargados. 👋<br>Soy Ade, tu guía. Usa el buscador o los modos inferiores.</div>
+    </div>
+    
+    <div class="input-area">
+        <input type="text" id="userInput" placeholder="Escribe un comando..." onkeypress="if(event.key==='Enter') process()">
+        <button onclick="process()" style="background:var(--accent); border:none; width:40px; height:40px; border-radius:50%; cursor:pointer;">➤</button>
     </div>
 
-    <div class="input-box">
-        <input type="text" id="in" placeholder="Pregúntame algo..." onkeypress="if(event.key==='Enter') send()">
-        <button onclick="send()" style="border-radius:50%; width:40px; border:none; background:var(--accent);">➤</button>
-    </div>
-
-    <div class="dock">
-        <button class="btn" onclick="startPomodoro()">⏳ Pomodoro</button>
-        <button class="btn" onclick="rdWiki()">🇩🇴 RD Dic</button>
-        <button class="btn" onclick="setTheme('#05350c', '#28e041')">🌿 Estudio</button>
-        <button class="btn" onclick="setTheme('#021b79', '#00d2ff')">💎 Vital</button>
-        <button class="btn" onclick="saludAlert()">💧 Salud</button>
-        <button class="btn" onclick="hablar('Iniciando sistema vital')">🔊 Voz</button>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; padding:15px; background:rgba(0,0,0,0.2);">
+        <button class="btn-gamer" onclick="process('MODO_ESTUDIO')">📚 Modo Estudio</button>
+        <button class="btn-gamer" onclick="process('SALUD')">💧 Tip Salud</button>
     </div>
 </div>
 
 <script>
-    const screen = document.getElementById("screen");
-
-    function hablar(texto) {
-        const msg = new SpeechSynthesisUtterance(texto);
-        msg.lang = 'es-ES';
-        window.speechSynthesis.speak(msg);
-    }
-
-    async function send(customMsg = null) {
-        const input = document.getElementById("in");
-        const val = customMsg || input.value.trim();
+    async function process(override = null) {
+        const input = document.getElementById("userInput");
+        const val = override || input.value.trim();
         if(!val) return;
-        
-        screen.innerHTML += `<div class="bubble user">${val}</div>`;
+
+        const screen = document.getElementById("screen");
+        screen.innerHTML += `<div class="msg user animate__animated animate__backInRight">${val}</div>`;
         input.value = "";
+
+        // Voz de usuario (opcional para feedback)
+        // hablar(val); 
 
         const res = await fetch("/api/ade", {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
+            headers: {"Content-Type":"application/json"},
             body: JSON.stringify({msg: val})
         });
         const data = await res.json();
-
-        let html = `<div class="bubble"><b>Ade:</b><br>${data.text}</div>`;
-        if(data.img) html += `<img src="${data.img}" style="width:100%; border-radius:15px; margin-top:10px;">`;
         
-        screen.innerHTML += html;
-        hablar(data.text.split('<')[0]); // Habla solo el texto plano
+        screen.innerHTML += `<div class="msg ade animate__animated animate__backInLeft">${data.text}</div>`;
         screen.scrollTop = screen.scrollHeight;
-    }
-
-    function startPomodoro() {
-        document.getElementById("pomodoro").style.display = "block";
-        let time = 25 * 60;
-        const timer = setInterval(() => {
-            let min = Math.floor(time / 60);
-            let sec = time % 60;
-            document.getElementById("pomodoro").innerText = `${min}:${sec < 10 ? '0'+sec : sec}`;
-            if(time <= 0) { clearInterval(timer); hablar("Tiempo terminado, descansa."); }
-            time--;
-        }, 1000);
-    }
-
-    function setTheme(bg, accent) {
-        document.documentElement.style.setProperty('--bg', bg);
-        document.documentElement.style.setProperty('--accent', accent);
-    }
-
-    function saludAlert() {
-        send("Dame un consejo de salud");
-    }
-
-    function rdWiki() {
-        send("Diccionario Dominicano");
+        
+        // Voz del sistema Ade
+        const u = new SpeechSynthesisUtterance(data.text);
+        u.lang = 'es-ES';
+        window.speechSynthesis.speak(u);
     }
 </script>
 </body>
@@ -141,20 +138,20 @@ def home():
 def api():
     msg = request.json.get("msg", "").lower()
     
-    # 2. Cultura Dominicana
-    if "diccionario dominicano" in msg:
-        return jsonify({"text": "Escribe una palabra (klk, vaina, manso) para explicarte."})
-    if msg in diccionario_rd:
-        return jsonify({"text": f"🇩🇴 <b>{msg.upper()}:</b> {diccionario_rd[msg]}"})
+    if "estudio" in msg:
+        return jsonify({"text": "⏳ Modo Pomodoro iniciado. Concéntrate 25 minutos. ¡Tú puedes!"})
+    
+    if "salud" in msg:
+        tips = ["Bebe un vaso de agua.", "Estira las piernas.", "Parpadea seguido."]
+        return jsonify({"text": f"💧 Tip Vital: {random.choice(tips)}"})
 
-    # 3. Salud Vital
-    if "salud" in msg or "consejo" in msg:
-        tips = ["Bebe 2 litros de agua hoy.", "Estira tu espalda cada 30 minutos.", "Descansa la vista de la pantalla."]
-        return jsonify({"text": f"💡 <b>Tip Vital:</b> {random.choice(tips)}"})
-
-    # 1. Buscador automático
-    txt, img = wiki_search(msg)
-    return jsonify({"text": txt, "img": img})
+    # Buscador Wikipedia
+    try:
+        url = f"https://es.wikipedia.org/api/rest_v1/page/summary/{msg.replace(' ', '_')}"
+        res = requests.get(url, headers={'User-Agent': 'AdeOS/7.0'}).json()
+        return jsonify({"text": res.get("extract", "No encontré info en la base de datos.")})
+    except:
+        return jsonify({"text": "Error de conexión con el satélite vital."})
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
