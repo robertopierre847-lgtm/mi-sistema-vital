@@ -5,41 +5,34 @@ from flask import Flask, request, jsonify, render_template_string
 
 app = Flask(__name__)
 
-# ================= LÓGICA DEL JUEGO (666 NIVELES) =================
-# Banco de datos expandible para la familia y cultura
+# ================= DATOS DE LOS JUEGOS =================
 preguntas_familia = [
-    {"q": "¿Quién es el hijo de tu hermano?", "a": "sobrino", "cat": "Familia"},
-    {"q": "¿Cómo se llama la madre de tu padre?", "a": "abuela", "cat": "Familia"},
-    {"q": "¿Qué es para ti el hijo de tu tío?", "a": "primo", "cat": "Familia"},
-    {"q": "¿Cómo se le llama al esposo de tu hija?", "a": "yerno", "cat": "Familia"},
-    {"q": "¿Quién es la hermana de tu madre?", "a": "tia", "cat": "Familia"},
-    {"q": "¿El hijo de tu padrastro que no es tu hermano es tu...?", "a": "hermanastro", "cat": "Familia"},
-    {"q": "¿Cómo se llama el padre de tu esposa?", "a": "suegro", "cat": "Familia"}
+    {"q": "¿Quién es el hijo de tu hermano?", "a": "sobrino"},
+    {"q": "¿Cómo se llama la madre de tu padre?", "a": "abuela"},
+    {"q": "¿Qué es para ti el hijo de tu tío?", "a": "primo"},
+    {"q": "¿Cómo se llama el padre de tu esposa?", "a": "suegro"}
 ]
 
-# Estado del sistema
-estado = {"nivel": 1, "esperando_respuesta": False, "r_correcta": ""}
+juego_sonidos = [
+    {"s": "🔊 🎶 'Do-Re-Mi...'", "o": ["Piano", "Guitarra", "Tambor"], "a": "Piano"},
+    {"s": "🔊 🦁 '¡Grrr-aaaaa!'", "o": ["Tigre", "León", "Oso"], "a": "León"},
+    {"s": "🔊 ⚡ '¡Boom! ¡Crack!'", "o": ["Trueno", "Fuego", "Explosión"], "a": "Trueno"},
+    {"s": "🔊 🌊 'Swoosh...'", "o": ["Viento", "Olas del mar", "Lluvia"], "a": "Olas del mar"}
+]
 
-# ================= CONEXIÓN REAL A WIKIPEDIA =================
-def buscar_en_wikipedia(query):
+# Estado global simple
+estado = {"modo": "chat", "nivel_f": 1, "nivel_s": 1, "r_correcta": ""}
+
+def wiki_search(query):
     try:
-        # API oficial de Wikipedia en español
         url = f"https://es.wikipedia.org/api/rest_v1/page/summary/{query.replace(' ', '_')}"
-        headers = {'User-Agent': 'AdeOS/2.0 (SistemaVital; contacto@ejemplo.com)'}
-        response = requests.get(url, headers=headers)
-        data = response.json()
-        
-        if response.status_code == 200:
-            texto = data.get("extract", "No hay resumen disponible.")
-            imagen = data.get("thumbnail", {}).get("source", "")
-            return texto, imagen
-        else:
-            return "No encontré nada en Wikipedia sobre ese tema. Prueba con otra palabra.", ""
-    except Exception as e:
-        return f"Error de conexión con Wikipedia: {str(e)}", ""
+        res = requests.get(url, headers={'User-Agent': 'AdeOS/3.0'}).json()
+        return res.get("extract", "No encontré nada sobre eso... 🔍"), res.get("thumbnail", {}).get("source", "")
+    except:
+        return "Error de conexión.", ""
 
-# ================= INTERFAZ DE USUARIO (CRISTAL AZUL) =================
-HTML_UI = """
+# ================= INTERFAZ WEB =================
+HTML = """
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -47,202 +40,165 @@ HTML_UI = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ade Vital OS 💎</title>
     <style>
-        :root {
-            --azul-cristal: rgba(10, 40, 95, 0.4);
-            --borde-neon: rgba(0, 210, 255, 0.5);
-        }
-
         body {
-            margin: 0;
-            height: 100vh;
-            background: url('https://wallpaperaccess.com/full/1155013.jpg') no-repeat center center fixed;
-            background-size: cover;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            margin: 0; height: 100vh;
+            background: linear-gradient(135deg, #021b79, #0575e6);
             font-family: 'Segoe UI', sans-serif;
-            overflow: hidden;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            overflow: hidden; color: white;
         }
 
-        /* Efecto Flotante y Cristalizado */
-        .window {
-            width: 400px;
-            height: 600px;
-            background: var(--azul-cristal);
-            backdrop-filter: blur(25px) saturate(150%);
-            -webkit-backdrop-filter: blur(25px);
-            border: 1px solid var(--borde-neon);
-            border-radius: 40px;
-            box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
-            display: flex;
-            flex-direction: column;
-            animation: floating 5s ease-in-out infinite;
-            position: relative;
+        .os-window {
+            width: 90%; max-width: 420px; height: 75vh;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 30px;
+            display: flex; flex-direction: column;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+            animation: float 5s ease-in-out infinite;
         }
 
-        @keyframes floating {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-15px); }
+        @keyframes float { 0%,100% {transform: translateY(0);} 50% {transform: translateY(-10px);} }
+
+        #screen { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; scrollbar-width: none; }
+        
+        .bubble { padding: 12px; border-radius: 15px; font-size: 0.9rem; max-width: 80%; }
+        .ade { background: rgba(255,255,255,0.15); align-self: flex-start; }
+        .user { background: #00d2ff; color: #001; align-self: flex-end; font-weight: bold; }
+
+        .game-panel {
+            padding: 15px; background: rgba(0,0,0,0.3);
+            border-bottom-left-radius: 30px; border-bottom-right-radius: 30px;
+            display: flex; justify-content: center; gap: 10px;
         }
 
-        .header {
-            padding: 25px;
-            text-align: center;
-            color: #00d2ff;
-            font-size: 1.5rem;
-            font-weight: bold;
-            text-shadow: 0 0 10px rgba(0, 210, 255, 0.8);
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+        .btn-game {
+            background: rgba(255,255,255,0.2); border: 1px solid white;
+            color: white; padding: 8px 15px; border-radius: 12px;
+            cursor: pointer; font-size: 0.8rem; transition: 0.3s;
         }
 
-        #chat {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            scrollbar-width: none;
-        }
+        .btn-game:hover { background: white; color: #021b79; }
 
-        .bubble {
-            padding: 12px 18px;
-            border-radius: 20px;
-            font-size: 0.95rem;
-            line-height: 1.4;
-            max-width: 85%;
-            color: white;
-            animation: slideIn 0.3s ease;
-        }
+        .options-container { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+        .opt-btn { background: #00d2ff; border: none; padding: 8px; border-radius: 8px; cursor: pointer; color: #001; font-weight: bold; flex: 1; }
 
-        @keyframes slideIn { from { opacity:0; transform: scale(0.8); } }
-
-        .ade { background: rgba(255, 255, 255, 0.15); align-self: flex-start; border-bottom-left-radius: 2px; }
-        .user { background: #00d2ff; color: #002; align-self: flex-end; border-bottom-right-radius: 2px; font-weight: 500; }
-
-        .wiki-img { width: 100%; border-radius: 15px; margin-top: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
-
-        .input-area {
-            padding: 20px;
-            background: rgba(0,0,0,0.2);
-            display: flex;
-            gap: 10px;
-            border-bottom-left-radius: 40px;
-            border-bottom-right-radius: 40px;
-        }
-
-        input {
-            flex: 1;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(0, 210, 255, 0.3);
-            border-radius: 20px;
-            padding: 12px;
-            color: white;
-            outline: none;
-        }
-
-        button {
-            background: #00d2ff;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: 0.3s;
-        }
-
-        button:hover { filter: brightness(1.2); transform: scale(1.05); }
-
-        .level-tag { color: #ff007a; font-weight: bold; font-size: 0.8rem; }
+        .input-box { display: flex; padding: 15px; gap: 10px; }
+        input { flex: 1; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 15px; padding: 10px; color: white; outline: none; }
     </style>
 </head>
 <body>
 
-<div class="window">
-    <div class="header">Ade Vital OS 💎</div>
-    <div id="chat">
-        <div class="bubble ade">Sistema en línea. 🌐<br><br>• Escribe <b>"buscar [algo]"</b> para usar Wikipedia.<br>• Escribe <b>"jugar"</b> para el reto de la familia.</div>
+<div class="os-window">
+    <div style="padding: 15px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">Ade OS Vital 💎</div>
+    <div id="screen">
+        <div class="bubble ade">¡Hola! Soy tu sistema inteligente.<br><br>Escribe cualquier cosa para buscar en Wikipedia o selecciona un juego abajo.</div>
     </div>
-    <div class="input-area">
-        <input type="text" id="msgIn" placeholder="Comando..." onkeypress="if(event.key==='Enter') enviar()">
-        <button onclick="enviar()">➤</button>
+
+    <div id="options" class="options-container" style="padding: 0 20px; display:none;"></div>
+
+    <div class="input-box">
+        <input type="text" id="userInput" placeholder="Escribe o responde aquí..." onkeypress="if(event.key==='Enter') send()">
+        <button onclick="send()" style="background:#00d2ff; border:none; border-radius:50%; width:40px; height:40px; cursor:pointer;">➤</button>
+    </div>
+
+    <div class="game-panel">
+        <button class="btn-game" onclick="startGame('familia')">👨‍👩‍👦 Juego Familia</button>
+        <button class="btn-game" onclick="startGame('sonidos')">🔊 Juego Sonidos</button>
     </div>
 </div>
 
 <script>
-    async function enviar() {
-        const input = document.getElementById("msgIn");
-        const chat = document.getElementById("chat");
-        const texto = input.value.trim();
-        if(!texto) return;
+    async function send(overrideMsg = null) {
+        const input = document.getElementById("userInput");
+        const msg = overrideMsg || input.value.trim();
+        if(!msg) return;
 
-        chat.innerHTML += `<div class="bubble user">${texto}</div>`;
+        const screen = document.getElementById("screen");
+        screen.innerHTML += `<div class="bubble user">${msg}</div>`;
         input.value = "";
+        document.getElementById("options").style.display = "none";
 
-        const res = await fetch("/api/v1/ade", {
+        const res = await fetch("/api/ade", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
-            body: JSON.stringify({msg: texto})
+            body: JSON.stringify({msg: msg})
         });
         const data = await res.json();
 
-        let aiHtml = `<div class="bubble ade">`;
-        if(data.nivel) aiHtml += `<span class="level-tag">NIVEL ${data.nivel}/666</span><br>`;
-        aiHtml += data.response;
-        if(data.img) aiHtml += `<br><img class="wiki-img" src="${data.img}">`;
-        aiHtml += `</div>`;
+        let html = `<div class="bubble ade">`;
+        if(data.nivel) html += `<b style="color:#ffea00;">NIVEL ${data.nivel}</b><br>`;
+        html += data.text;
+        if(data.img) html += `<br><img src="${data.img}" style="width:100%; border-radius:10px; margin-top:10px;">`;
+        html += `</div>`;
+        
+        screen.innerHTML += html;
 
-        chat.innerHTML += aiHtml;
-        chat.scrollTop = chat.scrollHeight;
+        if(data.options) {
+            const optDiv = document.getElementById("options");
+            optDiv.innerHTML = "";
+            optDiv.style.display = "flex";
+            data.options.forEach(o => {
+                optDiv.innerHTML += `<button class="opt-btn" onclick="send('${o}')">${o}</button>`;
+            });
+        }
+        screen.scrollTop = screen.scrollHeight;
+    }
+
+    function startGame(tipo) {
+        send(tipo === 'familia' ? "INICIAR_FAMILIA" : "INICIAR_SONIDOS");
     }
 </script>
 </body>
 </html>
 """
 
-# ================= ENDPOINTS DE LA API =================
+# ================= LÓGICA DEL SERVIDOR =================
 @app.route("/")
 def home():
-    return render_template_string(HTML_UI)
+    return render_template_string(HTML)
 
-@app.route("/api/v1/ade", methods=["POST"])
-def process_logic():
-    data = request.json
-    raw_msg = data.get("msg", "").lower().strip()
+@app.route("/api/ade", methods=["POST"])
+def api():
+    msg = request.json.get("msg", "").strip()
     
-    # BUSCADOR WIKIPEDIA
-    if raw_msg.startswith("buscar"):
-        tema = raw_msg.replace("buscar", "").strip()
-        info, img = buscar_en_wikipedia(tema)
-        estado["esperando_respuesta"] = False
-        return jsonify({"response": info, "img": img})
+    # Iniciar Juego Familia
+    if msg == "INICIAR_FAMILIA":
+        estado["modo"] = "familia"
+        estado["nivel_f"] = 1
+        q = random.choice(preguntas_familia)
+        estado["r_correcta"] = q["a"]
+        return jsonify({"text": f"¡Reto Familia nivel 1!<br>{q['q']}", "nivel": 1})
 
-    # LÓGICA DEL JUEGO
-    if "jugar" in raw_msg:
-        pregunta = random.choice(preguntas_familia)
-        estado["nivel"] = 1
-        estado["esperando_respuesta"] = True
-        estado["r_correcta"] = pregunta["a"]
-        return jsonify({"response": f"¡Reto nivel 1 iniciado!<br>{pregunta['q']}", "nivel": 1})
+    # Iniciar Juego Sonidos
+    if msg == "INICIAR_SONIDOS":
+        estado["modo"] = "sonidos"
+        estado["nivel_s"] = 1
+        q = random.choice(juego_sonidos)
+        estado["r_correcta"] = q["a"]
+        return jsonify({"text": f"Adivina el sonido:<br><b>{q['s']}</b>", "nivel": 1, "options": q["o"]})
 
-    # VALIDAR RESPUESTA DEL JUEGO
-    if estado["esperando_respuesta"]:
-        if raw_msg == estado["r_correcta"]:
-            estado["nivel"] += 1
-            if estado["nivel"] > 666:
-                estado["esperando_respuesta"] = False
-                return jsonify({"response": "🏆 ¡HAS COMPLETADO LOS 666 NIVELES! Eres el maestro de la familia."})
-            
-            siguiente = random.choice(preguntas_familia)
-            estado["r_correcta"] = siguiente["a"]
-            return jsonify({"response": f"✨ ¡Correcto!<br>Siguiente pregunta:<br>{siguiente['q']}", "nivel": estado["nivel"]})
-        else:
-            return jsonify({"response": "❌ Respuesta incorrecta. Inténtalo de nuevo o escribe 'buscar' para investigar.", "nivel": estado["nivel"]})
+    # Lógica de Respuesta de Juegos
+    if estado["modo"] == "familia" and msg.lower() == estado["r_correcta"].lower():
+        estado["nivel_f"] += 1
+        q = random.choice(preguntas_familia)
+        estado["r_correcta"] = q["a"]
+        return jsonify({"text": f"✅ ¡Correcto!<br>{q['q']}", "nivel": estado["nivel_f"]})
 
-    return jsonify({"response": "No reconozco ese comando. Usa 'buscar [tema]' o 'jugar'."})
+    if estado["modo"] == "sonidos" and msg == estado["r_correcta"]:
+        estado["nivel_s"] += 1
+        if estado["nivel_s"] > 55: return jsonify({"text": "🏆 ¡Ganaste el juego de sonidos!"})
+        q = random.choice(juego_sonidos)
+        estado["r_correcta"] = q["a"]
+        return jsonify({"text": f"✅ ¡Increíble!<br>Siguiente sonido:<br><b>{q['s']}</b>", "nivel": estado["nivel_s"], "options": q["o"]})
+
+    # SI NO ES JUEGO, ES BUSCADOR AUTOMÁTICO
+    info, img = wiki_search(msg)
+    estado["modo"] = "chat"
+    return jsonify({"text": info, "img": img})
 
 if __name__ == "__main__":
-    # Configuración para Render
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
     
