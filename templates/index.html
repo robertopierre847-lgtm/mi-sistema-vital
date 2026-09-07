@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Mi Sistema Vital</title>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at top, #243b78 0%, transparent 35%),
+                linear-gradient(135deg, #050816, #0b1228 55%, #111b38);
+            color: white;
+        }
+
+        header {
+            padding: 25px 8%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #6ee7ff;
+        }
+
+        .estado {
+            padding: 8px 14px;
+            border-radius: 20px;
+            background: rgba(34,197,94,0.15);
+            color: #4ade80;
+            font-size: 13px;
+        }
+
+        main {
+            width: 90%;
+            max-width: 1100px;
+            margin: auto;
+            padding: 70px 0;
+        }
+
+        .hero {
+            text-align: center;
+            margin-bottom: 55px;
+        }
+
+        .hero h1 {
+            font-size: clamp(42px, 8vw, 75px);
+            margin-bottom: 15px;
+            background: linear-gradient(90deg, #6ee7ff, #a78bfa, #f0abfc);
+            -webkit-background-clip: text;
+            color: transparent;
+        }
+
+        .hero p {
+            max-width: 650px;
+            margin: auto;
+            color: #b7c1d9;
+            font-size: 18px;
+            line-height: 1.6;
+        }
+
+        .boton {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            background: linear-gradient(90deg, #2563eb, #7c3aed);
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            box-shadow: 0 10px 30px rgba(59,130,246,0.25);
+            transition: 0.3s;
+        }
+
+        .boton:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(124,58,237,0.4);
+        }
+
+        .tarjetas {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .tarjeta {
+            padding: 28px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            backdrop-filter: blur(15px);
+            transition: 0.3s;
+        }
+
+        .tarjeta:hover {
+            transform: translateY(-7px);
+            border-color: rgba(110,231,255,0.5);
+        }
+
+        .icono {
+            font-size: 38px;
+            margin-bottom: 18px;
+        }
+
+        .tarjeta h2 {
+            margin-bottom: 10px;
+            font-size: 21px;
+        }
+
+        .tarjeta p {
+            color: #aeb8cf;
+            line-height: 1.5;
+        }
+
+        .panel {
+            margin-top: 45px;
+            padding: 30px;
+            border-radius: 22px;
+            background: linear-gradient(
+                135deg,
+                rgba(37,99,235,0.15),
+                rgba(124,58,237,0.15)
+            );
+            border: 1px solid rgba(255,255,255,0.1);
+            text-align: center;
+        }
+
+        .panel h2 {
+            margin-bottom: 12px;
+        }
+
+        .panel p {
+            color: #b7c1d9;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: #71809e;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+
+        @media (max-width: 600px) {
+            header {
+                padding: 20px;
+            }
+
+            main {
+                padding: 50px 0;
+            }
+
+            .hero p {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo">⚡ Mi Sistema Vital</div>
+        <div class="estado">● Sistema activo</div>
+    </header>
+
+    <main>
+
+        <section class="hero">
+            <h1>Mi Sistema Vital</h1>
+
+            <p>
+                Bienvenido a tu espacio digital. 
+                Una plataforma diseñada para organizar,
+                consultar y gestionar información de manera
+                sencilla, rápida y moderna.
+            </p>
+
+            <a href="#funciones" class="boton">
+                Explorar sistema 🚀
+            </a>
+        </section>
+
+        <section id="funciones" class="tarjetas">
+
+            <div class="tarjeta">
+                <div class="icono">❤️</div>
+                <h2>Bienestar</h2>
+                <p>
+                    Lleva un control organizado de aspectos
+                    importantes de tu bienestar.
+                </p>
+            </div>
+
+            <div class="tarjeta">
+                <div class="icono">📊</div>
+                <h2>Control</h2>
+                <p>
+                    Visualiza información de forma clara
+                    y mantén todo organizado.
+                </p>
+            </div>
+
+            <div class="tarjeta">
+                <div class="icono">🧠</div>
+                <h2>Información</h2>
+                <p>
+                    Accede rápidamente a los datos
+                    importantes de tu sistema.
+                </p>
+            </div>
+
+            <div class="tarjeta">
+                <div class="icono">🔒</div>
+                <h2>Privacidad</h2>
+                <p>
+                    Mantén tu información organizada
+                    dentro de tu aplicación.
+                </p>
+            </div>
+
+        </section>
+
+        <section class="panel">
+            <h2>🚀 Sistema preparado</h2>
+
+            <p>
+                Tu aplicación Flask está conectada correctamente
+                con esta página.
+            </p>
+
+            <a href="/" class="boton">
+                Actualizar sistema
+            </a>
+        </section>
+
+    </main>
+
+    <footer>
+        © 2026 Mi Sistema Vital · Proyecto personal
+    </footer>
+
+</body>
+  </html>
