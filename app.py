@@ -1,365 +1,1315 @@
-import os
-import random
-import unicodedata
-from urllib.parse import quote
-
-import requests
-from flask import Flask, jsonify, render_template_string, request
-
-app = Flask(__name__)
-
-# ============================================================
-# ADE VITAL 2.0 - IA EDUCATIVA EN UNA ESFERA
-# ============================================================
-
-PREGUNTAS = [
-    {"q": "¿Cuál es el planeta más grande del sistema solar?", "a": "jupiter", "opts": ["Júpiter", "Marte", "Venus"]},
-    {"q": "¿Cuántos lados tiene un hexágono?", "a": "6", "opts": ["5", "6", "8"]},
-    {"q": "¿Quién escribió Don Quijote de la Mancha?", "a": "miguel de cervantes", "opts": ["Miguel de Cervantes", "Gabriel García Márquez", "Pablo Neruda"]},
-    {"q": "¿Qué gas necesitan principalmente las plantas para realizar la fotosíntesis?", "a": "dioxido de carbono", "opts": ["Oxígeno", "Dióxido de carbono", "Helio"]},
-]
-
-SONIDOS = [
-    {"s": "🐶 ¡Guau, guau!", "a": "perro", "opts": ["Perro", "Gato", "Vaca"]},
-    {"s": "🐄 ¡Muuuu!", "a": "vaca", "opts": ["Caballo", "Vaca", "Oveja"]},
-    {"s": "🐱 ¡Miauuu!", "a": "gato", "opts": ["Gato", "Perro", "León"]},
-]
-
-def normalizar(texto):
-    texto = unicodedata.normalize("NFD", str(texto).lower().strip())
-    return "".join(c for c in texto if unicodedata.category(c) != "Mn")
-
-HTML = r"""
 <!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>ADE VITAL 2.0</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Mi Sistema Vital</title>
+
 <style>
-*{box-sizing:border-box}
+
+/* =====================================================
+   MI SISTEMA VITAL — MÁRMOL ÉLITE
+   ===================================================== */
+
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
 :root{
- --accent:#00d9ff;--accent2:#7b2cff;--bg:#050817;
- --glass:rgba(7,13,35,.72);--text:#eafaff
+    --gold:#d6ad55;
+    --gold-light:#f4d98a;
+    --black:#11110f;
+    --white:#f8f7f3;
+    --gray:#77746c;
+    --glass:rgba(255,255,255,.55);
 }
+
 body{
- margin:0;min-height:100vh;color:var(--text);
- font-family:Segoe UI,Arial,sans-serif;background:var(--bg);
- overflow-x:hidden;transition:background .5s;
+    font-family:Georgia, "Times New Roman", serif;
+    color:#24221d;
+    min-height:100vh;
+
+    background:
+        linear-gradient(
+            120deg,
+            rgba(255,255,255,.95),
+            rgba(220,218,211,.75),
+            rgba(250,249,245,.95)
+        );
+
+    overflow-x:hidden;
 }
-#universe{position:fixed;inset:0;z-index:-5;overflow:hidden}
-.stars{
- position:absolute;inset:-20%;
- background-image:
- radial-gradient(circle at 20% 30%,rgba(0,220,255,.55) 0 1px,transparent 2px),
- radial-gradient(circle at 70% 20%,rgba(255,255,255,.8) 0 1px,transparent 2px),
- radial-gradient(circle at 45% 80%,rgba(150,80,255,.7) 0 1px,transparent 2px);
- background-size:90px 90px,130px 130px,170px 170px;
- animation:drift 25s linear infinite;
+
+/* Mármol */
+
+body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+
+    background:
+        repeating-linear-gradient(
+            115deg,
+            transparent 0px,
+            transparent 90px,
+            rgba(90,88,82,.07) 92px,
+            transparent 95px,
+            transparent 180px
+        );
+
+    opacity:.8;
 }
-.nebula{
- position:absolute;width:60vw;height:60vw;border-radius:50%;
- background:radial-gradient(circle,rgba(92,42,255,.28),rgba(0,210,255,.08),transparent 70%);
- filter:blur(25px);left:-10%;top:5%;animation:float 8s ease-in-out infinite;
+
+/* =====================================================
+   SPLASH
+   ===================================================== */
+
+#splash{
+    position:fixed;
+    inset:0;
+    z-index:9999;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+
+    background:
+        radial-gradient(
+            circle at center,
+            #3b382f,
+            #11110f 70%
+        );
+
+    color:white;
+
+    animation:
+        splashHide 1s ease 2.3s forwards;
 }
-.nebula.two{left:auto;right:-15%;top:35%;background:radial-gradient(circle,rgba(0,240,210,.2),rgba(100,30,255,.1),transparent 70%);animation-delay:-4s}
-.floating{position:absolute;font-size:26px;opacity:.25;animation:float 7s ease-in-out infinite}
-.f1{left:12%;top:20%}.f2{right:14%;top:17%;animation-delay:-2s}.f3{left:7%;bottom:20%;animation-delay:-4s}.f4{right:8%;bottom:16%;animation-delay:-1s}
-@keyframes drift{to{transform:translate(70px,40px)}}
-@keyframes float{50%{transform:translateY(-25px) rotate(8deg)}}
+
+.logo{
+    width:100px;
+    height:100px;
+
+    border-radius:50%;
+
+    border:2px solid var(--gold);
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    font-size:42px;
+
+    color:var(--gold-light);
+
+    box-shadow:
+        0 0 40px rgba(214,173,85,.3);
+
+    animation:
+        logoPulse 1.5s infinite;
+}
+
+#splash h1{
+    margin-top:25px;
+    letter-spacing:4px;
+    font-size:24px;
+}
+
+#splash p{
+    margin-top:10px;
+    color:#aaa;
+    font-family:Arial,sans-serif;
+    font-size:12px;
+}
+
+/* =====================================================
+   APP
+   ===================================================== */
+
 .app{
- width:min(1400px,96vw);min-height:94vh;margin:3vh auto;
- display:grid;grid-template-columns:220px 1fr 240px;gap:14px;
+    position:relative;
+    z-index:2;
+
+    width:min(680px,100%);
+    margin:auto;
+
+    padding-bottom:110px;
 }
-.panel,.topbar,.bottom,.chat,.hero{
- background:var(--glass);border:1px solid rgba(0,217,255,.25);
- box-shadow:0 0 35px rgba(0,180,255,.08),inset 0 0 30px rgba(255,255,255,.02);
- backdrop-filter:blur(18px);border-radius:22px;
+
+/* =====================================================
+   HEADER
+   ===================================================== */
+
+header{
+    padding:30px 22px 15px;
+
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
 }
-.sidebar{padding:18px;display:flex;flex-direction:column;gap:10px}
-.logo{font-size:22px;font-weight:900;color:var(--accent);text-shadow:0 0 15px var(--accent)}
-.tag{font-size:10px;letter-spacing:3px;opacity:.65;margin-bottom:18px}
-.nav{
- padding:13px;border:1px solid transparent;border-radius:13px;
- color:#cfe9f5;background:transparent;text-align:left;cursor:pointer;font-size:14px;
- transition:.25s
+
+.brand{
+    font-family:Arial,sans-serif;
+    font-size:10px;
+    letter-spacing:4px;
+    color:#8b6b29;
+    font-weight:bold;
 }
-.nav:hover,.nav.active{border-color:var(--accent);background:rgba(0,217,255,.1);transform:translateX(4px);color:white}
-.profile{margin-top:auto;padding:14px;border-radius:16px;background:rgba(255,255,255,.04)}
-.level{height:7px;border-radius:20px;background:#18243c;overflow:hidden;margin-top:8px}
-.level i{display:block;width:72%;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));box-shadow:0 0 12px var(--accent)}
-.main{display:flex;flex-direction:column;gap:14px}
-.topbar{height:58px;padding:0 18px;display:flex;align-items:center;justify-content:space-between}
-.clock{font-weight:800;color:var(--accent)}
-.quote{font-size:12px;opacity:.8}
-.hero{flex:1;min-height:520px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
-.hero:before{
- content:"";position:absolute;width:500px;height:500px;border-radius:50%;
- background:radial-gradient(circle,rgba(0,217,255,.12),transparent 62%);
- animation:pulse 3s ease-in-out infinite
+
+header h1{
+    margin-top:8px;
+    font-size:29px;
 }
-@keyframes pulse{50%{transform:scale(1.12);opacity:.7}}
-.orb{
- width:245px;height:245px;border-radius:50%;position:relative;z-index:2;
- display:flex;align-items:center;justify-content:center;
- background:radial-gradient(circle at 35% 30%,#263b72 0,#090f29 42%,#02040d 75%);
- border:2px solid var(--accent);
- box-shadow:0 0 25px var(--accent),0 0 80px rgba(0,217,255,.35),inset 0 0 45px rgba(0,217,255,.25);
- animation:orb 4s ease-in-out infinite
+
+header p{
+    font-family:Arial,sans-serif;
+    color:var(--gray);
+    font-size:13px;
+    margin-top:5px;
 }
-.orb:after,.orb:before{
- content:"";position:absolute;inset:-25px;border:2px solid var(--accent);
- border-radius:50%;opacity:.5;transform:rotateX(70deg) rotateZ(20deg);
- animation:ring 4s linear infinite
+
+.profile{
+    width:48px;
+    height:48px;
+
+    border-radius:50%;
+
+    border:1px solid rgba(170,130,50,.5);
+
+    background:
+        linear-gradient(
+            145deg,
+            #fff,
+            #d8d5cc
+        );
+
+    font-size:20px;
+
+    box-shadow:
+        0 8px 20px rgba(0,0,0,.1);
 }
-.orb:after{inset:-45px;opacity:.22;animation-duration:7s;transform:rotateX(72deg) rotateZ(-35deg)}
-@keyframes orb{50%{transform:translateY(-8px) scale(1.025)}}
-@keyframes ring{to{transform:rotateX(70deg) rotateZ(380deg)}}
-.face{font-size:58px;color:var(--accent);text-shadow:0 0 20px var(--accent)}
-.ade-name{font-size:32px;font-weight:900;letter-spacing:6px;color:white;text-shadow:0 0 18px var(--accent);margin-top:20px}
-.status{color:var(--accent);font-size:12px;letter-spacing:2px;margin-top:7px}
-.quick{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:25px;z-index:3}
-.quick button,.send{
- border:1px solid var(--accent);background:rgba(0,217,255,.08);color:white;
- padding:9px 13px;border-radius:999px;cursor:pointer
+
+/* =====================================================
+   PÁGINAS
+   ===================================================== */
+
+.page{
+    display:none;
+    padding:10px 20px;
+    animation:pageIn .5s ease;
 }
-.quick button:hover{background:rgba(0,217,255,.2);box-shadow:0 0 15px rgba(0,217,255,.25)}
-.chat{padding:10px;display:flex;gap:10px}
-#input{flex:1;background:rgba(0,0,0,.3);border:1px solid #203b55;color:white;border-radius:13px;padding:14px;outline:none}
-.send{width:52px;background:var(--accent);color:#001018;font-weight:900}
-.messages{position:absolute;left:18px;bottom:18px;width:min(370px,70%);z-index:4}
-.msg{padding:12px 15px;border-radius:15px;margin-top:8px;font-size:13px;line-height:1.4;background:rgba(2,8,20,.85);border:1px solid rgba(0,217,255,.2)}
-.msg.user{border-color:var(--accent);text-align:right}
-.right{padding:16px;display:flex;flex-direction:column;gap:12px}
-.section-title{font-weight:800;color:var(--accent);font-size:14px}
-.theme{padding:10px;border-radius:13px;border:1px solid #23425b;background:rgba(255,255,255,.03);cursor:pointer}
-.theme:hover{border-color:var(--accent);transform:scale(1.02)}
-.theme b{display:block}.theme span{font-size:11px;opacity:.6}
-.card{padding:13px;border-radius:15px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07)}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.stat{text-align:center;padding:10px;border-radius:12px;background:rgba(0,217,255,.05)}
-.stat strong{display:block;font-size:20px;color:var(--accent)}
-.bottom{padding:12px;display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-.mode{
- padding:12px 5px;border:1px solid transparent;background:transparent;color:white;border-radius:13px;cursor:pointer
+
+.page.active{
+    display:block;
 }
-.mode:hover{border-color:var(--accent);background:rgba(0,217,255,.08)}
-.game-options{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:12px;z-index:5}
-.game-options button{padding:10px 14px;border:1px solid var(--accent);border-radius:12px;background:#07182a;color:white;cursor:pointer}
-@media(max-width:950px){.app{grid-template-columns:1fr}.sidebar,.right{display:none}.hero{min-height:560px}.bottom{grid-template-columns:repeat(5,1fr)}}
-@media(max-width:550px){.app{width:100%;margin:0;min-height:100vh}.topbar{border-radius:0}.hero{border-radius:0;min-height:560px}.orb{width:190px;height:190px}.face{font-size:45px}.ade-name{font-size:25px}.bottom{border-radius:0}.mode{font-size:11px}.messages{width:85%}}
+
+/* =====================================================
+   NIVEL
+   ===================================================== */
+
+.level-card{
+    position:relative;
+
+    padding:22px;
+
+    border-radius:28px;
+
+    color:white;
+
+    background:
+        linear-gradient(
+            135deg,
+            #292720,
+            #11110f
+        );
+
+    box-shadow:
+        0 18px 45px rgba(0,0,0,.25);
+
+    overflow:hidden;
+}
+
+.level-card::after{
+    content:"";
+    position:absolute;
+
+    width:180px;
+    height:180px;
+
+    right:-80px;
+    top:-80px;
+
+    border-radius:50%;
+
+    border:1px solid rgba(214,173,85,.4);
+}
+
+.level-top{
+    display:flex;
+    justify-content:space-between;
+}
+
+.level-label{
+    color:#b9b5a8;
+    font-family:Arial,sans-serif;
+    font-size:10px;
+    letter-spacing:2px;
+}
+
+.level-number{
+    display:block;
+    color:var(--gold-light);
+    font-size:38px;
+    margin-top:3px;
+}
+
+.xp{
+    text-align:right;
+    font-family:Arial,sans-serif;
+}
+
+.xp strong{
+    color:var(--gold-light);
+    font-size:20px;
+}
+
+.xp span{
+    display:block;
+    color:#aaa;
+    font-size:10px;
+}
+
+.xp-bar{
+    height:7px;
+    margin-top:18px;
+
+    background:#35332e;
+
+    border-radius:20px;
+    overflow:hidden;
+}
+
+.xp-bar div{
+    height:100%;
+    width:0;
+
+    background:
+        linear-gradient(
+            90deg,
+            #a87b25,
+            #f4d98a
+        );
+
+    transition:width .8s ease;
+}
+
+.xp-info{
+    display:flex;
+    justify-content:space-between;
+
+    margin-top:7px;
+
+    font-family:Arial,sans-serif;
+    font-size:10px;
+    color:#aaa;
+}
+
+/* =====================================================
+   ESTADO VITAL
+   ===================================================== */
+
+.vital-status{
+    margin-top:15px;
+
+    background:
+        rgba(255,255,255,.72);
+
+    backdrop-filter:blur(20px);
+
+    border:1px solid rgba(150,130,90,.22);
+
+    border-radius:28px;
+
+    padding:24px;
+
+    box-shadow:
+        0 12px 35px rgba(0,0,0,.08);
+}
+
+.section-title{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.section-title small{
+    font-family:Arial,sans-serif;
+    letter-spacing:2px;
+    font-size:9px;
+    color:#8b6b29;
+}
+
+.section-title h2{
+    font-size:22px;
+    margin-top:4px;
+}
+
+.percent{
+    color:#96732d;
+    font-family:Arial,sans-serif;
+    font-weight:bold;
+}
+
+/* círculo */
+
+.circle-container{
+    display:flex;
+    justify-content:center;
+    padding:25px 0;
+}
+
+.circle{
+    width:175px;
+    height:175px;
+
+    border-radius:50%;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    background:
+        conic-gradient(
+            var(--gold) 0deg,
+            #e8e5dd 0deg
+        );
+
+    box-shadow:
+        0 12px 35px rgba(120,90,20,.15);
+
+    transition:background 1s ease;
+}
+
+.circle-inner{
+    width:139px;
+    height:139px;
+
+    border-radius:50%;
+
+    background:
+        linear-gradient(
+            145deg,
+            #fff,
+            #e5e2da
+        );
+
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+
+    box-shadow:
+        inset 0 2px 8px rgba(0,0,0,.08);
+}
+
+.circle-inner strong{
+    font-size:32px;
+}
+
+.circle-inner span{
+    font-family:Arial,sans-serif;
+    color:#858177;
+    font-size:10px;
+}
+
+/* =====================================================
+   SISTEMA
+   ===================================================== */
+
+.system-title{
+    margin:22px 0 12px;
+}
+
+.system-title small{
+    font-family:Arial,sans-serif;
+    font-size:9px;
+    color:#8b6b29;
+    letter-spacing:2px;
+}
+
+.system-title h2{
+    margin-top:4px;
+}
+
+/* tarjetas */
+
+.cards{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+}
+
+.card{
+    position:relative;
+
+    min-height:170px;
+
+    padding:18px;
+
+    border-radius:24px;
+
+    background:
+        linear-gradient(
+            145deg,
+            rgba(255,255,255,.9),
+            rgba(225,222,213,.72)
+        );
+
+    border:1px solid rgba(130,110,70,.2);
+
+    box-shadow:
+        0 12px 28px rgba(0,0,0,.08);
+
+    transition:
+        transform .25s ease,
+        box-shadow .25s ease;
+}
+
+.card:active{
+    transform:scale(.96);
+}
+
+.card:hover{
+    transform:translateY(-4px);
+
+    box-shadow:
+        0 18px 35px rgba(0,0,0,.13);
+}
+
+.card-icon{
+    font-size:30px;
+}
+
+.card-label{
+    display:block;
+
+    margin-top:20px;
+
+    font-family:Arial,sans-serif;
+    font-size:9px;
+    letter-spacing:1px;
+
+    color:#777269;
+}
+
+.card h3{
+    margin-top:5px;
+    font-size:24px;
+}
+
+.card small{
+    color:#858177;
+    font-family:Arial,sans-serif;
+    font-size:10px;
+}
+
+.mini-bar{
+    position:absolute;
+    bottom:17px;
+    left:18px;
+    right:18px;
+
+    height:4px;
+
+    background:#d3d0c8;
+
+    border-radius:10px;
+}
+
+.mini-bar div{
+    height:100%;
+    width:0;
+
+    border-radius:10px;
+
+    background:
+        linear-gradient(
+            90deg,
+            #9c7425,
+            #e6c56f
+        );
+
+    transition:width .5s ease;
+}
+
+/* =====================================================
+   MISIÓN
+   ===================================================== */
+
+.mission{
+    margin-top:15px;
+
+    padding:20px;
+
+    border-radius:25px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #201e19,
+            #0f0f0d
+        );
+
+    color:white;
+
+    display:flex;
+    gap:14px;
+    align-items:center;
+
+    box-shadow:
+        0 15px 35px rgba(0,0,0,.22);
+}
+
+.mission-icon{
+    width:52px;
+    height:52px;
+
+    border-radius:17px;
+
+    display:grid;
+    place-items:center;
+
+    background:
+        linear-gradient(
+            145deg,
+            #b58b36,
+            #624817
+        );
+
+    font-size:24px;
+}
+
+.mission-content{
+    flex:1;
+}
+
+.mission-content small{
+    color:#c8a957;
+    font-family:Arial,sans-serif;
+    font-size:9px;
+    letter-spacing:1px;
+}
+
+.mission-content h3{
+    margin-top:4px;
+    font-size:15px;
+}
+
+.mission-content p{
+    margin-top:4px;
+
+    color:#aaa;
+
+    font-family:Arial,sans-serif;
+    font-size:10px;
+}
+
+.mission-xp{
+    color:#e8c96e;
+    font-family:Arial,sans-serif;
+    font-weight:bold;
+    font-size:11px;
+}
+
+/* =====================================================
+   ESTADÍSTICAS
+   ===================================================== */
+
+.page-heading{
+    padding:15px 0 20px;
+}
+
+.page-heading small{
+    color:#8b6b29;
+    font-family:Arial,sans-serif;
+    font-size:9px;
+    letter-spacing:2px;
+}
+
+.page-heading h2{
+    font-size:30px;
+    margin-top:6px;
+}
+
+.page-heading p{
+    color:#777269;
+    font-family:Arial,sans-serif;
+    font-size:12px;
+    margin-top:6px;
+}
+
+.stats{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+}
+
+.stat{
+    padding:20px;
+
+    border-radius:23px;
+
+    background:rgba(255,255,255,.75);
+
+    border:1px solid rgba(130,110,70,.18);
+
+    box-shadow:
+        0 10px 25px rgba(0,0,0,.07);
+}
+
+.stat-icon{
+    font-size:25px;
+}
+
+.stat strong{
+    display:block;
+    font-size:28px;
+    margin-top:12px;
+}
+
+.stat small{
+    color:#817d73;
+    font-family:Arial,sans-serif;
+    font-size:10px;
+}
+
+/* gráfico */
+
+.chart-card{
+    margin-top:15px;
+
+    padding:20px;
+
+    border-radius:25px;
+
+    background:rgba(255,255,255,.72);
+
+    border:1px solid rgba(130,110,70,.18);
+}
+
+.chart{
+    height:190px;
+
+    display:flex;
+    align-items:end;
+
+    gap:8px;
+
+    margin-top:25px;
+}
+
+.chart div{
+    flex:1;
+
+    border-radius:8px 8px 2px 2px;
+
+    background:
+        linear-gradient(
+            180deg,
+            #e1bd61,
+            #8f6825
+        );
+
+    animation:barUp .8s ease;
+}
+
+/* =====================================================
+   MISIONES
+   ===================================================== */
+
+.mission-list{
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+}
+
+.mission-row{
+    padding:18px;
+
+    display:flex;
+    align-items:center;
+    gap:13px;
+
+    border-radius:23px;
+
+    background:rgba(255,255,255,.76);
+
+    border:1px solid rgba(130,110,70,.18);
+}
+
+.mission-row-icon{
+    width:50px;
+    height:50px;
+
+    border-radius:16px;
+
+    display:grid;
+    place-items:center;
+
+    background:#e7e2d6;
+
+    font-size:24px;
+}
+
+.mission-row-content{
+    flex:1;
+}
+
+.mission-row-content small{
+    color:#92702c;
+    font-family:Arial,sans-serif;
+    font-size:8px;
+}
+
+.mission-row-content h3{
+    font-size:14px;
+    margin-top:4px;
+}
+
+.mission-row-content p{
+    font-family:Arial,sans-serif;
+    color:#858177;
+    font-size:10px;
+    margin-top:4px;
+}
+
+.mission-row > strong{
+    color:#9b762d;
+    font-family:Arial,sans-serif;
+    font-size:11px;
+}
+
+/* =====================================================
+   NIVEL
+   ===================================================== */
+
+.level-showcase{
+    text-align:center;
+
+    padding:30px 20px;
+
+    border-radius:30px;
+
+    color:white;
+
+    background:
+        radial-gradient(
+            circle,
+            #403a2c,
+            #12120f 70%
+        );
+
+    box-shadow:
+        0 20px 45px rgba(0,0,0,.25);
+}
+
+.level-orb{
+    width:165px;
+    height:165px;
+
+    margin:auto;
+
+    border-radius:50%;
+
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+
+    border:2px solid var(--gold);
+
+    box-shadow:
+        0 0 45px rgba(214,173,85,.2);
+}
+
+.level-orb span{
+    font-family:Arial,sans-serif;
+    font-size:9px;
+    color:#aaa;
+    letter-spacing:2px;
+}
+
+.level-orb strong{
+    color:#f2d27b;
+    font-size:65px;
+}
+
+.level-showcase h2{
+    margin-top:20px;
+}
+
+.level-showcase p{
+    margin-top:8px;
+    color:#aaa;
+    font-family:Arial,sans-serif;
+    font-size:11px;
+    line-height:1.5;
+}
+
+.achievement{
+    margin-top:25px;
+    margin-bottom:12px;
+}
+
+.badges{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:12px;
+}
+
+.badge{
+    padding:20px;
+
+    text-align:center;
+
+    border-radius:22px;
+
+    background:rgba(255,255,255,.75);
+
+    border:1px solid rgba(130,110,70,.18);
+
+    font-size:30px;
+}
+
+.badge span{
+    display:block;
+
+    margin-top:8px;
+
+    font-family:Arial,sans-serif;
+    color:#777269;
+    font-size:10px;
+}
+
+/* =====================================================
+   NAVEGACIÓN
+   ===================================================== */
+
+.bottom-nav{
+    position:fixed;
+
+    z-index:100;
+
+    bottom:15px;
+    left:50%;
+
+    transform:translateX(-50%);
+
+    width:min(620px,calc(100% - 25px));
+
+    padding:8px;
+
+    border-radius:25px;
+
+    background:
+        rgba(25,24,21,.94);
+
+    backdrop-filter:blur(20px);
+
+    border:1px solid rgba(214,173,85,.3);
+
+    display:flex;
+    justify-content:space-around;
+
+    box-shadow:
+        0 15px 35px rgba(0,0,0,.25);
+}
+
+.nav-btn{
+    border:0;
+    background:none;
+
+    color:#888;
+
+    padding:8px 12px;
+
+    border-radius:17px;
+
+    font-family:Arial,sans-serif;
+
+    transition:.2s;
+}
+
+.nav-btn span{
+    display:block;
+    font-size:19px;
+}
+
+.nav-btn small{
+    display:block;
+    margin-top:3px;
+    font-size:8px;
+}
+
+.nav-btn.active{
+    color:#f0d37d;
+
+    background:
+        rgba(214,173,85,.12);
+}
+
+/* =====================================================
+   TOAST
+   ===================================================== */
+
+.toast{
+    position:fixed;
+
+    left:50%;
+    bottom:95px;
+
+    transform:
+        translateX(-50%)
+        translateY(20px);
+
+    background:#171613;
+
+    color:white;
+
+    border:1px solid rgba(214,173,85,.4);
+
+    padding:13px 20px;
+
+    border-radius:15px;
+
+    font-family:Arial,sans-serif;
+    font-size:12px;
+
+    opacity:0;
+
+    pointer-events:none;
+
+    transition:.3s;
+
+    z-index:5000;
+}
+
+.toast.show{
+    opacity:1;
+    transform:
+        translateX(-50%)
+        translateY(0);
+}
+
+/* =====================================================
+   ANIMACIONES
+   ===================================================== */
+
+@keyframes splashHide{
+    to{
+        opacity:0;
+        visibility:hidden;
+    }
+}
+
+@keyframes logoPulse{
+    50%{
+        transform:scale(1.06);
+        box-shadow:
+            0 0 65px rgba(214,173,85,.5);
+    }
+}
+
+@keyframes pageIn{
+    from{
+        opacity:0;
+        transform:translateY(15px);
+    }
+
+    to{
+        opacity:1;
+        transform:translateY(0);
+    }
+}
+
+@keyframes barUp{
+    from{
+        height:0;
+    }
+}
+
+/* =====================================================
+   MÓVIL
+   ===================================================== */
+
+@media(max-width:420px){
+
+    header h1{
+        font-size:25px;
+    }
+
+    .cards{
+        gap:9px;
+    }
+
+    .card{
+        min-height:160px;
+        padding:15px;
+    }
+
+    .circle{
+        width:155px;
+        height:155px;
+    }
+
+    .circle-inner{
+        width:123px;
+        height:123px;
+    }
+
+}
+
 </style>
 </head>
+
 <body>
-<div id="universe">
- <div class="stars"></div><div class="nebula"></div><div class="nebula two"></div>
- <div class="floating f1">✦</div><div class="floating f2">◈</div><div class="floating f3">✧</div><div class="floating f4">⬡</div>
+
+<!-- SPLASH -->
+
+<div id="splash">
+
+    <div class="logo">✦</div>
+
+    <h1>MI SISTEMA VITAL</h1>
+
+    <p>Tu progreso. Tu sistema.</p>
+
 </div>
+
 
 <div class="app">
- <aside class="panel sidebar">
-   <div class="logo">✦ ADE VITAL</div>
-   <div class="tag">TU MENTE, SIN LÍMITES</div>
-   <button class="nav active" onclick="home()">⌂ Inicio</button>
-   <button class="nav" onclick="focusInput()">◉ Chat IA</button>
-   <button class="nav" onclick="startGame('trivia')">🎮 Juegos</button>
-   <button class="nav" onclick="lab()">⚗ Laboratorio</button>
-   <button class="nav" onclick="explore()">◎ Explorar</button>
-   <button class="nav" onclick="wiki()">▣ Biblioteca</button>
-   <button class="nav" onclick="progress()">▥ Progreso</button>
-   <div class="profile">
-     <b>👤 Estudiante</b><br><small>Nivel 12 · 2,450 XP</small>
-     <div class="level"><i></i></div>
-   </div>
- </aside>
 
- <main class="main">
-   <div class="topbar">
-     <div class="clock" id="clock">--:--</div>
-     <div class="quote">“El conocimiento abre nuevos mundos.”</div>
-     <div>⚡ <b id="xp">2450</b> XP</div>
-   </div>
+<!-- =====================================================
+     HEADER
+     ===================================================== -->
 
-   <section class="hero">
-     <div class="orb" id="orb"><div class="face">◡‿◡</div></div>
-     <div class="ade-name">ADE</div>
-     <div class="status" id="status">● SISTEMA EDUCATIVO ACTIVO</div>
-     <div class="quick">
-       <button onclick="ask('¿Qué es la gravedad?')">¿Qué es la gravedad?</button>
-       <button onclick="ask('Dame un resumen de historia')">Resumen de historia</button>
-       <button onclick="startGame('trivia')">Desafío escolar</button>
-     </div>
-     <div class="game-options" id="options"></div>
-     <div class="messages" id="messages">
-       <div class="msg"><b>Hola, soy ADE.</b> 🤖<br>Pregunta, estudia, juega o explora. Mi universo educativo está listo.</div>
-     </div>
-   </section>
+<header>
 
-   <div class="chat">
-     <input id="input" placeholder="Escribe tu pregunta o elige una misión..." onkeydown="if(event.key==='Enter')send()">
-     <button class="send" onclick="send()">➤</button>
-   </div>
+    <div>
 
-   <div class="bottom">
-     <button class="mode" onclick="startGame('trivia')">🎮<br>Juegos</button>
-     <button class="mode" onclick="lab()">🧪<br>Laboratorio</button>
-     <button class="mode" onclick="explore()">🌎<br>Explorar</button>
-     <button class="mode" onclick="wiki()">📚<br>Biblioteca</button>
-     <button class="mode" onclick="progress()">🏆<br>Progreso</button>
-   </div>
- </main>
+        <div class="brand">
+            MI SISTEMA VITAL
+        </div>
 
- <aside class="panel right">
-   <div class="section-title">🌌 FONDOS DISPONIBLES</div>
-   <div class="theme" onclick="theme('space')"><b>🌌 Cosmos</b><span>Nebulosas y estrellas</span></div>
-   <div class="theme" onclick="theme('nature')"><b>🌿 Naturaleza</b><span>Modo explorador</span></div>
-   <div class="theme" onclick="theme('ocean')"><b>🌊 Océano</b><span>Profundidades</span></div>
-   <div class="theme" onclick="theme('science')"><b>🧬 Ciencia</b><span>Moléculas y energía</span></div>
-   <div class="theme" onclick="theme('history')"><b>🏛 Historia</b><span>Civilizaciones</span></div>
-   <div class="theme" onclick="theme('cyber')"><b>💠 Cyber</b><span>Ciudad digital</span></div>
-   <div class="section-title" style="margin-top:8px">📊 HOY</div>
-   <div class="stats">
-     <div class="stat"><strong id="score">0</strong><small>Puntos</small></div>
-     <div class="stat"><strong id="answers">0</strong><small>Acertadas</small></div>
-   </div>
-   <div class="card">🔥 <b>Racha</b><br><small>¡Sigue aprendiendo!</small></div>
-   <div class="card">💡 <b>Misión</b><br><small>Responde 3 desafíos educativos.</small></div>
- </aside>
-</div>
+        <h1>Buenos días 👋</h1>
 
-<script>
-let mode="chat", correct="", score=0, answers=0;
+        <p>
+            Hoy tienes una nueva oportunidad.
+        </p>
 
-function clock(){
- const d=new Date();
- document.getElementById("clock").textContent=d.toLocaleTimeString("es-DO",{hour:"2-digit",minute:"2-digit"});
-}
-setInterval(clock,1000);clock();
+    </div>
 
-function add(type,text){
- const box=document.getElementById("messages");
- const div=document.createElement("div");
- div.className="msg "+type;
- div.textContent=text;
- box.appendChild(div);
- while(box.children.length>4) box.removeChild(box.firstChild);
-}
+    <button class="profile">
+        👤
+    </button>
 
-function focusInput(){document.getElementById("input").focus()}
-function ask(t){document.getElementById("input").value=t;send()}
-function setStatus(t){document.getElementById("status").textContent="● "+t}
+</header>
 
-async function send(custom=null){
- const input=document.getElementById("input");
- const msg=(custom??input.value).trim();
- if(!msg)return;
- add("user",msg); input.value="";
- document.getElementById("options").innerHTML="";
- setStatus("ADE ESTÁ PENSANDO...");
- document.getElementById("orb").style.filter="brightness(1.5)";
 
- try{
-  const r=await fetch("/api/ade",{
-   method:"POST",headers:{"Content-Type":"application/json"},
-   body:JSON.stringify({msg,mode,correct})
-  });
-  const data=await r.json();
-  add("ade",data.text);
-  mode=data.mode||"chat"; correct=data.correct||"";
-  if(data.options){
-   const box=document.getElementById("options");
-   data.options.forEach(o=>{
-    const b=document.createElement("button");
-    b.textContent=o;b.onclick=()=>send(o);box.appendChild(b);
-   });
-  }
-  if(data.correct_answer){score+=10;answers++;document.getElementById("score").textContent=score;document.getElementById("answers").textContent=answers}
- }catch(e){add("ade","No pude conectar con mi núcleo. Intenta de nuevo.");}
- setStatus("SISTEMA EDUCATIVO ACTIVO");
- document.getElementById("orb").style.filter="";
-}
+<!-- =====================================================
+     INICIO
+     ===================================================== -->
 
-function startGame(kind){
- if(kind==="trivia")send("INICIAR_TRIVIA");
- else send("INICIAR_SONIDOS");
-}
-function theme(t){
- const u=document.getElementById("universe");
- if(t==="nature")u.style.background="linear-gradient(135deg,#082015,#174d35)";
- else if(t==="ocean")u.style.background="linear-gradient(135deg,#031c32,#07556b)";
- else if(t==="science")u.style.background="linear-gradient(135deg,#16072e,#073f52)";
- else if(t==="history")u.style.background="linear-gradient(135deg,#21150a,#4c2b0e)";
- else if(t==="cyber")u.style.background="linear-gradient(135deg,#160026,#071d3f)";
- else u.style.background="radial-gradient(circle at 50% 30%,#14235c,#050817 65%)";
-}
-function home(){add("ade","🏠 Estás en Inicio. La esfera ADE está lista para ayudarte.");}
-function lab(){add("ade","🧪 LABORATORIO: próximamente podrás explorar experimentos, simulaciones y fenómenos científicos.");}
-function explore(){add("ade","🌎 EXPLORAR: elige un tema como espacio, animales, geografía, historia o tecnología y pregúntame sobre él.");}
-function wiki(){ask("¿Qué información educativa interesante puedes encontrar en Wikipedia?");}
-function progress(){add("ade","🏆 PROGRESO: Nivel 12 · 2,450 XP · Sigue completando desafíos para subir de nivel.");}
-</script>
-</body>
-</html>
-"""
+<section id="home" class="page active">
 
-@app.route("/")
-def home():
-    return render_template_string(HTML)
+    <!-- NIVEL -->
 
-@app.route("/api/ade", methods=["POST"])
-def api():
-    data = request.get_json(silent=True) or {}
-    msg = str(data.get("msg", "")).strip()
-    msg_n = normalizar(msg)
-    mode = data.get("mode", "chat")
-    correct = normalizar(data.get("correct", ""))
+    <div class="level-card">
 
-    if msg_n == "iniciar_trivia":
-        q = random.choice(PREGUNTAS)
-        return jsonify({"text": "🎮 DESAFÍO ESCOLAR\n\n" + q["q"], "mode": "trivia", "correct": q["a"], "options": q["opts"]})
+        <div class="level-top">
 
-    if msg_n == "iniciar_sonidos":
-        q = random.choice(SONIDOS)
-        return jsonify({"text": "🔊 ADIVINA EL SONIDO\n\n" + q["s"], "mode": "sounds", "correct": q["a"], "options": q["opts"]})
+            <div>
 
-    if mode in ("trivia", "sounds"):
-        if msg_n == correct:
-            if mode == "trivia":
-                q = random.choice(PREGUNTAS)
-                return jsonify({"text": "✅ ¡Excelente! +10 XP\n\nSiguiente desafío:\n" + q["q"], "mode": "trivia", "correct": q["a"], "options": q["opts"], "correct_answer": True})
-            q = random.choice(SONIDOS)
-            return jsonify({"text": "✅ ¡Correcto! +10 XP\n\nNuevo sonido:\n" + q["s"], "mode": "sounds", "correct": q["a"], "options": q["opts"], "correct_answer": True})
-        return jsonify({"text": "❌ Todavía no. Prueba otra opción.", "mode": mode, "correct": correct})
+                <div class="level-label">
+                    NIVEL ACTUAL
+                </div>
 
-    if not msg:
-        return jsonify({"text": "Escribe algo y comenzaré a ayudarte.", "mode": "chat"})
+                <strong
+                    class="level-number"
+                    id="level">
+                    1
+                </strong>
 
-    # Wikipedia: fuente externa para respuestas educativas.
-    try:
-        title = quote(msg.replace(" ", "_"), safe="")
-        url = f"https://es.wikipedia.org/api/rest_v1/page/summary/{title}"
-        res = requests.get(
-            url,
-            headers={"User-Agent": "AdeVital/2.0 educational project"},
-            timeout=8
-        )
-        if res.status_code == 200:
-            data_w = res.json()
-            extract = data_w.get("extract")
-            if extract:
-                return jsonify({
-                    "text": "📚 Según Wikipedia:\n\n" + extract,
-                    "mode": "chat"
-                })
-    except requests.RequestException:
-        pass
+            </div>
 
-    return jsonify({
-        "text": "🤖 No encontré una entrada exacta en Wikipedia. Prueba con un concepto más específico, por ejemplo: \"Sistema Solar\", \"fotosíntesis\" o \"Revolución Francesa\".",
-        "mode": "chat"
-    })
+            <div class="xp">
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+                <strong id="xp">
+                    0
+                </strong>
 
+                <span>
+                    XP
+                </span>
+
+            </div>
+
+        </div>
+
+        <div class="xp-bar">
+            <div id="xpProgress"></div>
+        </div>
+
+        <div class="xp-info">
+
+            <span id="xpCurrent">
+                0 XP
+            </span>
+
+            <span id="xpNeeded">
+                100 XP
+            </span>
+
+        </div>
+
+    </div>
+
+
+    <!-- ESTADO VITAL -->
+
+    <div class="vital-status">
+
+        <div class="section-title">
+
+            <div>
+
+                <small>
+                    RESUMEN
+                </small>
+
+                <h2>
+                    Estado vital
+                </h2>
+
+            </div>
+
+            <span
+                class="percent"
+                id="dayPercent">
+                0%
+            </span>
+
+        </div>
+
+
+        <div class="circle-container">
+
+            <div
+                class="circle"
+                id="circle">
+
+                <div class="circle-inner">
+
+                    <strong
+                        id="dailyPercent">
+                        0%
+                    </strong>
+
+                    <span>
+                        completado
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- SISTEMA -->
+
+    <div class="system-title">
+
+        <small>
+            TU SISTEMA
+        </small>
+
+        <h2>
+            Control diario
+        </h2>
+
+    </div>
+
+
+    <div class="cards">
+
+        <!-- AGUA -->
+
+        <div
+            class="card"
+            onclick="addWater()">
+
+            <div class="card-icon">
+                💧
+            </div>
+
+            <span class="card-label">
+                HIDRATACIÓN
+            </span>
+
+            <h3>
+                <span id="water">
+                    0
+                </span>/8
+            </h3>
+
+            <small>
+                vasos
+            </small>
+
+            <div class="mini-bar">
+                <div id="waterBar"></div>
+            </div>
+
+        </div>
+
+
+        <!-- SUEÑO -->
+
+        <div class="card">
+
+            <div class="card-icon">
+                🌙
+            </div>
+
+            <span class="card-label">
+                DESCANSO
+            </span>
+
+            <h3>
+                7h 30m
+            </h3>
+
+            <small>
+                objetivo diario
+            </small>
+
+            <div class="mini-bar">
+                <div style="width:78%"></div>
+            </div>
+
+        </div>
+
+
+        <!-- ACTIVIDAD -->
+
+        <div class="card">
+
+            <div class=
